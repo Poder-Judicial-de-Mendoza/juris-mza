@@ -1,0 +1,685 @@
+﻿jul 3, 2026
+sentencias con Pablo Cabezas - Transcripción
+00:03:44
+
+
+Mauricio Ryan: Hola, Romi. Calculo que no tendrá micrófono para hablar. A ver, en el chat. Nos quedamos esperando. Ram. Ahí voy. Pablito,
+pablo Cabezas: Hola. Hola.
+Mauricio Ryan: ¿cómo andá?
+pablo Cabezas: Oye, con un
+Mauricio Ryan: Ah, no te escucho. No sé si seré yo.
+pablo Cabezas: frío
+Mauricio Ryan: No tené el micrófono activado, pero no te escucho. Voy a ver si subo el volumen. Ahí lo subí, pero no, no te escucho. A ver,
+pablo Cabezas: ahí.
+Mauricio Ryan: queremos que No tengo micrófono ni cámara. Mi equipo, ¿nos escuchas? A mí me escucha y a Pablo Romi.
+pablo Cabezas: Rob, ¿me
+Mauricio Ryan: Ahora sí.
+pablo Cabezas: escuchas?
+Mauricio Ryan: Ahora, ahora no. Hola, Susy.
+Susana Barea: Hola, ¿cómo están?
+Mauricio Ryan: Escucho.
+Susana Barea: Buen día.
+Mauricio Ryan: ¿Vos lo escuchas? Pablo,
+Susana Barea: Eh, a ver, Pablo, no,
+Mauricio Ryan: no, no te estamos escuchando.
+Susana Barea: en en un ratito que que te lo corra. Justo me estaban pidiendo que corriera un SCP.
+
+
+
+
+00:16:43
+
+
+Mauricio Ryan: Hola,
+Maximo Starvaggi: Hola,
+Mauricio Ryan: Máximo.
+Maximo Starvaggi: buenas.
+Susana Barea: ¿Cómo están?
+Maximo Starvaggi: ¿Cómo están? Todo bien,
+pablo Cabezas: Bien,
+Susana Barea: ¿Todo bien?
+pablo Cabezas: ahí me escuchan.
+Mauricio Ryan: Ahora sí,
+Susana Barea: Ahora sí, ahora
+pablo Cabezas: Ahora sí,
+Mauricio Ryan: Pablo.
+pablo Cabezas: ya ahí cambié el el Bluetooth
+Susana Barea: sí.
+Maximo Starvaggi: Susy.
+Mauricio Ryan: Sí, sí, sí, sí. A mí me pasa siempre.
+pablo Cabezas: al
+Mauricio Ryan: Tengo tantos cosos conectados, tengo no sé cuántos Bluetooth
+Susana Barea: Sí,
+pablo Cabezas: dispositivo,
+Mauricio Ryan: conectado.
+pablo Cabezas: etcétera, etcétera,
+Susana Barea: claro.
+pablo Cabezas: que al final uno no sabe qué tiene conectado.
+Maximo Starvaggi: ¿Cómo están todos? Bien.
+Mauricio Ryan: Muy
+pablo Cabezas: Todo
+Susana Barea: Muy bien, muy bien.
+Maximo Starvaggi: Bueno, me alegro.
+Mauricio Ryan: bien,
+Bibiana Zuñega: Buen día.
+pablo Cabezas: bien.
+Susana Barea: Buen día.
+Maximo Starvaggi: Buen día,
+Susana Barea: Uy,
+Bibiana Zuñega: ¿Cómo andas, Sus?
+Susana Barea: muy bien.
+
+
+
+
+00:17:15
+
+
+Bibiana Zuñega: Mauri,
+Susana Barea: ¿Cómo va,
+Bibiana Zuñega: Pablito,
+Susana Barea: V?
+Bibiana Zuñega: ya nos vimos.
+Mauricio Ryan: muy bien.
+Bibiana Zuñega: Hola, Max.
+pablo Cabezas: La viví tanto
+Maximo Starvaggi: Yeah.
+Bibiana Zuñega: Tanto tiempo.
+Mauricio Ryan: Hemos invitado un montón de gente, Pablo,
+pablo Cabezas: tiempo.
+Mauricio Ryan: porque queremos aprovecharte. Queremos sacar el jugo y y me entusiasma la solución que pudiste armar. A ver cómo nos podés contar lo que estuviste haciendo. Así que si querés te voy contando.
+pablo Cabezas: Sí.
+Mauricio Ryan: Eh,
+pablo Cabezas: S.
+Mauricio Ryan: Jimene y Máximo puede que no los conozca. Eh, ellos trabajan con Nicolás Zurijón en Birmot. Eh, estamos pensando en en cómo hacer el buscador en AWS. Eh, ellos ya participaron en el proyecto inicial, o sea,
+pablo Cabezas: Ah.
+Mauricio Ryan: conocen cómo nos traemos la sentencia en backet S3 y demás y están viendo si podemos usar S3 Vector, que es una herramienta nueva bastante reciente de Ale veces para hacer
+Maximo Starvaggi: Hm.
+Mauricio Ryan: embeding con los datos que ya están en el S3, ¿no? Así que ellos nos pueden rescatar lo que vos digas por ese lado, ¿no?
+
+
+
+
+00:18:17
+
+
+pablo Cabezas: Claro. ¿Quiénes quiénes son del equipo de Dirmot?
+Maximo Starvaggi: Exacto.
+pablo Cabezas: Que ahí no te entendí bien para anotarlo.
+Maximo Starvaggi: Eh,
+Mauricio Ryan: Jimena y
+Gimena Binaghi: Cá
+Maximo Starvaggi: ¿cómo estás,
+pablo Cabezas: La máximo.
+Maximo Starvaggi: Pablo?
+pablo Cabezas: Hola, Gusto.
+Maximo Starvaggi: ¿Todo bien?
+pablo Cabezas: Sí, sí, parece que no habíamos visto.
+Mauricio Ryan: Máximo.
+pablo Cabezas: Parece que lo había visto en la reunión pasada.
+Maximo Starvaggi: En la reunión pasada nos cruzamos. Eh, bueno, Jime es del equipo técnico que está desarrollando la solución. Eh, y yo estoy como como PM de del proyecto todo el lado de mod que trabajamos con Nicolás. Así que bueno, gracias Mauri, por la
+Mauricio Ryan: No sé cómo está en Chile,
+Maximo Starvaggi: presentación.
+Mauricio Ryan: pero te darás cuenta que acá está frío en en Mendozi. Parece que en Buenos Aires también porque Jim está abrigadito igual que
+pablo Cabezas: Acá es la décimo igual.
+Maximo Starvaggi: Yo yo llegué ayer de Chile por un viaje por trabajo con con Nicolás y la verdad que está muy
+Mauricio Ryan: yo.
+Maximo Starvaggi: frío.
+
+
+
+
+00:19:00
+
+
+Maximo Starvaggi: Santiago.
+Gimena Binaghi: Yo no estoy en Buenos Aires, estoy en el norte de Santa Fe y está muy frío para nosotros.
+Maximo Starvaggi: Sí.
+Marisa: Yeah.
+Gimena Binaghi: Pero grados es demasiado. Acostumbrado a 40.
+Maximo Starvaggi: Pero bueno,
+Gimena Binaghi: Sí,
+Susana Barea: un montón.
+Gimena Binaghi: sí.
+Mauricio Ryan: Acá Mendoza también estamos con 0 grados.
+Gimena Binaghi: Sí, sí, pero ustedes están acostumbrados por lo
+Maximo Starvaggi: no.
+Gimena Binaghi: menos.
+Mauricio Ryan: No, no nos está dando basto la calefacción del edificio, así que estoy con camperita dentro de de la
+Maximo Starvaggi: Bueno, eh lo que sí les pido,
+pablo Cabezas: Ya.
+Mauricio Ryan: oficina.
+Susana Barea: Bueno,
+Maximo Starvaggi: ¿podemos grabar la la meet para poder después porque Roberto no se podía sumar? Entonces, sería ideal si podemos grabarla para poder analizarla en caso que nos quede alguna duda, eh, y después volver.
+Mauricio Ryan: Sí, déjame ver si lo puedo habilitar la grabación por aquí.
+Maximo Starvaggi: Sí.
+Mauricio Ryan: Sé que que está tomando nota.
+Maximo Starvaggi: Y a ver si yo puedo. No creo que puedo
+Susana Barea: Vamos
+
+
+
+
+00:19:57
+
+
+Maximo Starvaggi: yo.
+Mauricio Ryan: Me acuerdo cómo se hacía acá. A ver si le pregunto rápido.
+Maximo Starvaggi: Mira, en los tres puntos que están al lado del cortar, vos, Mauricio, que sos el creo que el que lo organizó ahí,
+Mauricio Ryan: Sí, sí, sí, sí.
+Maximo Starvaggi: ahí está. Lo que pasa que a mí me figura como grabación no disponible.
+Mauricio Ryan: Ajustar vista, pantalla abrir fondo, usar solución
+Susana Barea: No, en la primer la primera de las
+Mauricio Ryan: configuración.
+Marisa: Arriba
+Susana Barea: opciones. Viste que tenés la manito, los tres puntitos y se te abren las opciones.
+Mauricio Ryan: Sí, sí.
+Susana Barea: No te sale grabar.
+Mauricio Ryan: Administrar grabación.
+Marisa: grabación. Yeah.
+Mauricio Ryan: Sí, sí, sí, sí. Administrar grabación.
+Maximo Starvaggi: Ahí está,
+Mauricio Ryan: Iniciar grabación.
+Maximo Starvaggi: ahí está. Muchísimas gracias,
+pablo Cabezas: Ya no sé cómo cómo comenzamos,
+Susana Barea: Está
+pablo Cabezas: cómo les conviene más.
+Mauricio Ryan: Como más tomate el control, lo que a vos te guste. No, no, no. Estamos con con mucho teléfonos compuestos porque vos le has contado al Mario lo que ha hecho.
+
+
+
+
+00:20:56
+
+
+Mauricio Ryan: El Mario nos cuenta a nosotros según su interpretación. Entonces, contanos de la manera que a vos mejor te parezca cómo compartir la experiencia del laboratorio que estuviste
+pablo Cabezas: Sien, les les cuento bien resumido.
+Mauricio Ryan: haciendo.
+pablo Cabezas: Voy a tratar de ser lo más eficiente del del mundo porque justo tengo, le contaba a la Vivi recién que tuvo un problema con agenda y esta reunión yo la tenía agendada a las 11:30, pero nunca me di cuenta que era las 11:30 de Argentina y no de Chile. Entonces tengo otra reunión a las 11.
+Susana Barea: Clash
+pablo Cabezas: De hecho, la Vivi me alertó por la reunión que tuvimos antes,
+Mauricio Ryan: Escucha.
+pablo Cabezas: así que ahí voy a tratar hacer lo más lo más sintético posible,
+Mauricio Ryan: Sí,
+pablo Cabezas: pero sin perder el detalle.
+Mauricio Ryan: sí, sí.
+pablo Cabezas: Ya.
+Mauricio Ryan: Cualquier cosa no volvemos a
+pablo Cabezas: Eh, s les cuento la idea que que parte eh
+Mauricio Ryan: juntar.
+pablo Cabezas: principalmente por lo que planteaba en algunas conversaciones con con e con Mario, con Mauricio y el equipo local de Mendoza para poder trabajar en el concepto de jurisprudencia. Entonces, desde ahí en adelante lo que yo hice fue trabajar con un par de ideas. Les voy a compartir la pantalla.
+
+
+
+
+00:22:06
+
+
+pablo Cabezas: Ahí se ve la pantalla. ¿Me confirman?
+Mauricio Ryan: Sí, sí se ve.
+Gimena Binaghi: Sí, sí, se ve. M.
+pablo Cabezas: Sí. S. Ya.
+Susana Barea: el micro.
+pablo Cabezas: Entonces, a ver, que no veo acá la pantallita.
+Susana Barea: Todas las porque vos sabes que me quedé empezando que apagado.
+pablo Cabezas: Voy a ponerla ahí. Ahí sí. ¿Ya? Entonces nosotros entre esa conversación lo que hicimos fue
+Susana Barea: Y ahora que se
+pablo Cabezas: probar una demo, que es lo que ustedes están viendo en pantalla,
+Susana Barea: Okay.
+pablo Cabezas: que es lo que busca en la práctica es ser un portal de jurisprudencia. Aquí hay aplicamos dos lógicas de fondo. Eh, hicimos scrapping de todo lo que pudimos eh captar desde lo que está publicado la de las sentencias de Mendoza. Ya no tenemos un acceso directo para este ejercicio. No, no tuvo un acceso directo, sino que directamente eh y de muy mala forma y pidiendo todo el perdón del mundo, eh escrapié todas las las sentencias habidas y por haber. Ya algunas tenían texto, otras tenían documentos PDF. Ahí había una variedad, en este caso, de fuentes, no no todas estaban exactamente igual eh construidas dentro del portal.
+
+
+
+
+00:23:23
+
+
+pablo Cabezas: Y en total fueron aproximadamente 27,000 sentencias las que pude obtener y eh apliqué dos técnicas, una técnica que es el fight tuning y otra técnica que se llama Raj. Eh, dos cosas como bien puntuales. Hoy día se hace mucho RAG sobre modelos X y es una muy buena práctica. Porque finalmente hoy día los modelos son muy potentes, etcétera, etcétera. Pero la idea de poder haber hecho f tuning sobre un modelo era poder hacer un modelo experto en base a la jurisprudencia de Mendoza y adicionalmente bajar la cantidad de parámetros de un modelo, como por ejemplo haber utilizado, estar utilizando Cloud Antropic, Open II, eh Gemini, que son modelos gigantescos, por un modelo mucho más pequeño, pero que fuera experto. Por lo tanto, acá se hizo un f tuning de un modelo de 12 billones de parámetros. Por lo tanto, lo que ustedes van a ver hoy día no corre en ningún worldclass, sino que está corriendo 100% en local con un modelo de lenguaje que es f tuneado con todo lo que es la la jurisprudencia de Mendoza y adicionalmente un rag. Entonces se mezclan las dos cosas, F tuning, creación de un módulo experto y adicionalmente el RAG, que es el que permite ir a buscar todos estos pedacitos de texto que están vectorizados en base a la sentencia.
+
+
+
+
+00:24:44
+
+
+pablo Cabezas: Entonces eso es lo que nosotros
+Mauricio Ryan: Ahí Ahí ya te tengo una pregunta. Siempre el F lo hemos dejado para más adelante porque se considera prohibitivo en costos.
+pablo Cabezas: podemos
+Mauricio Ryan: Eh, si si vos lo hiciste con tu bolsillo, supongo que no fue tan caro o o cómo salió
+pablo Cabezas: yo tengo Sí. Me demoré,
+Mauricio Ryan: sentencia.
+pablo Cabezas: me demoré 23 horas en hacerlo y lo hice de manera local en una DGX Spark. Yo tengo una aquí en el laboratorio un una DGX, armé un laboratorio de ella que es la DGX es una es una
+Mauricio Ryan: una placa.
+pablo Cabezas: supercutadora, comillas eh de 128 GB de memoria unificada. Entonces la puedo correr completamente en local. Fíjese todo ese proceso sin gastar un peso.
+Mauricio Ryan: Claro.
+pablo Cabezas: Si esa es la gracia finalmente no tuve que desde lo práctico hacer nada más.
+Mauricio Ryan: Bien.
+pablo Cabezas: Y eh tenemos dos modalidades que es en este caso la búsqueda directamente de sentencias y tenemos también el modo consulta experto que esto hace las consultas directamente al lluneado que tenemos en este caso a disposición y como les digo, todo corre local. Aquí tenemos esta pantallita en donde se muestran, por ejemplo, las cámaras, Suprema Corte, Juzgado, otros tribunales, todos los fuero, etcétera, etcétera.
+
+
+
+
+00:26:10
+
+
+pablo Cabezas: Acá, obviamente hay un montón de cosas que eh afinar porque esto fue eh derechamente un trabajo que hice yo con mi nulo conocimiento jurídico. Por lo tanto, quizás todas estas eh estos filtros y combinaciones se podrían adaptar de una forma mucho más eficiente que lo que está. Entonces, por ejemplo, yo seleccioné Suprema Corte, todos los fueros y voy a seleccionar, por ejemplo, arbitraridad por omisión de prueba. Y aquí ya me trajo los resultados. Si se fijaron, es bastante rápido, principalmente por dos cosas, uno por el RAG y lo otro porque el modelo LM que está abajo es especialista en el tema y me permite, por ejemplo, de esta que es una búsqueda semántica por la temática que nosotros seleccionamos. Vamos a abrir los
+Mauricio Ryan: Eso lo contestó el RA o el o el modelo.
+pablo Cabezas: dos, los dos. Y ahí está. Gracias que se combinan las técnicas.
+Mauricio Ryan: No.
+pablo Cabezas: El LM es capaz de interpretar lo que tú le acabas de entregar, que en este caso fue el texto semántico, y en base a eso voy a buscar al RAG que tiene todo el contenido de la sentencia. Entonces, se mezclan ambas técnicas. Y bueno, acá me da en este caso todos los artículos, los jueces, que acá hay un señor que se llama Mario, no sé si lo ubican, eh,
+
+
+
+
+00:27:35
+
+
+Mario Adaro: Epa,
+Mauricio Ryan: Sí.
+Mario Adaro: epa, epa, epa. Yeah.
+Bibiana Zuñega: está acá, eh
+pablo Cabezas: sí, lo vi, sí lo vi. Por eso estaba se aplicó un abstract cortito y la sentencia completa. Acá está. Ahora, la gracia de te al experto es que si se fijan en el extremo inferior derecho dice pregunta sobre el fallo. ¿Se ve ahí? Entonces,
+Mauricio Ryan: Sí.
+pablo Cabezas: si yo abro preguntas sobre el fallo, ya me entrega algunas eh sugerencias de preguntas y yo aquí ocupo al experto que es el ML que está especializado en la Jurisprudencia de Mendoza y aquí va a volver a ocupar las dos técnicas, el especialista y el RAG. Entonces, le voy a preguntar, ¿qué resolvió el tribunal? Va a leer la sentencia.
+Mauricio Ryan: Ahí ya sí estás chateando contra la sentencia. Ni rag ni ni LLM.
+pablo Cabezas: Ahí sigo ocupando las dos técnicas. Está el LLM, el que interpreta la pregunta del lenguaje natural y el RAG el que me entrega el contenido. Se sigue claro,
+Mauricio Ryan: Pero ahora para chatear no estás chateando sobre la sentencia. Claro,
+pablo Cabezas: o sea,
+Mauricio Ryan: ahora sí en esta etapa ya
+
+
+
+
+00:28:44
+
+
+pablo Cabezas: sobre el sobre ojo ojo,
+Mauricio Ryan: no.
+pablo Cabezas: estoy chateando sobre el contexto de la sentencia,
+Mauricio Ryan: Sí.
+pablo Cabezas: pero utilizando el rag y utilizando el modelo.
+Mauricio Ryan: A la mha
+pablo Cabezas: Lo que cambia es lo que cambia es el contexto. Y aquí, si ustedes se fijan, ya me respondió.
+Mauricio Ryan: Ok.
+pablo Cabezas: Listo. Entonces, el ML sabe el contexto donde está, que es esta sentencia y para poder responder las preguntas en lenguaje natural, sabe que tiene que ir a buscar esos chants que equivalen a esta sentencia. Ya. Y eso es como bien es bien interesante porque se vuelven a combinar las dos técnicas. Ahora puedo volver a la búsqueda general y si se fijan acá arribita dice explorador visual. No sé si se vio ahí o lo hice muy rápido.
+Mauricio Ryan: Sí.
+Marisa: Sí,
+pablo Cabezas: Entonces, en el explorador visual hay un eh gráfico de nodos en donde,
+Mauricio Ryan: Sí.
+Marisa: sí.
+pablo Cabezas: por ejemplo, me permite ir encontrando las sentencias que están relacionadas en la búsqueda y las puedo ir consultando. Si ustedes se fijan, a mano derecha van cambiando y estas tienen normas en común, aplicaciones en común o contextos en común.
+Mario Adaro: Eso, Pablo,
+pablo Cabezas: Entonces,
+
+
+
+
+00:29:55
+
+
+Mario Adaro: ¿le aplicas grafos o no?
+pablo Cabezas: grafos.
+Mario Adaro: No. Ah,
+pablo Cabezas: Exacto.
+Mario Adaro: okay. O sea,
+pablo Cabezas: Tal cual.
+Mario Adaro: es una tercera técnica que haces sobre la base sobre la base
+pablo Cabezas: Exacto.
+Mario Adaro: vectorizada del RAC o del F tunif.
+pablo Cabezas: Es sí, sobre la base del RAJ.
+Mario Adaro: Okay.
+pablo Cabezas: Como ya tengo el lote de sentencia que están,
+Mario Adaro: Sí, ya la tenés comprimida y la tenés pasada.
+pablo Cabezas: armo, tengo el resultado, armo el grafo directamente. Entonces, acá, por ejemplo, ya puedo ir seleccionando y si ustedes se fijan, me aparecen acá el detalle conectado con cuáles sentencias, puedo abrir el fallo o puedo buscar más fallos, por ejemplo, que esta sobre enfermedad profesional y me va a buscar más fallos sobre esta que se parece en lo práctico. Ahora tengo el grafo, tengo la línea de tiempo en donde me muestra según los contenidos que yo tengo que estas fueron el 2014, entre 2014 y 2013, si se fijan. O puedo ir corriendo la línea de tiempo y acá tengo las fotos son que son similares.
+Mauricio Ryan: Oh, qué interesante
+pablo Cabezas: Entonces,
+
+
+
+
+00:30:56
+
+
+Mauricio Ryan: Mhm.
+pablo Cabezas: puedo ir analizando como una especie de timeline cómo se van relacionando estas sentencias. Si la pincho, hago exactamente lo mismo que el anterior. Entonces, puedo puedo ver eh jurisprudencia similar en el tiempo moviéndolo y con la misma opción. Tengo el mapa que también es muy parecido. Aquí lo lanza desde el despido, enfermedad profesional y lo va relacionando en base al contexto de fondo, que ya aquí hablamos como de materias de fondo. Y si se fijan, si le doy un click, exactamente hace lo mismo. Ya, pero acá el despido, despido por FB profesional y aquí hace toda esta relación. Después tengo materias, despido, enfermedad profesional, accidente del trabajo, desalojo, derecho procesal civil y me las va orientando en base a materias. Si yo le doy un clic, hace exactamente lo mismo y me entregan los siete fallos relacionados. Ahí
+Mario Adaro: Pablito, lo lo que vi también aparte del rag es que tenés por voces también usaste las voces del
+pablo Cabezas: está.
+Mario Adaro: tesaburo y tagueaste arriba
+pablo Cabezas: Eh, sí. Sí, arriba.
+Mario Adaro: sobre la base sobre La base del RAG.
+pablo Cabezas: Sí, tal cual,
+Mario Adaro: Sí.
+
+
+
+
+00:32:21
+
+
+pablo Cabezas: tal cual. Y adicionalmente de las materias, que obviamente aquí ya puedo ir a revisar la sentencia. Si se fijan, está el link ahí. Tengo el comparar y me toma del resultado de las sentencias comparadas para que yo analice con el experto, como este es experto en jurisprudencia. Ya tengo estas tres sentencias y le voy a preguntar al experto algo, que las analice, que las compare. Ahí el modelo le puse CSJ Mendoza. Sí, lo bauticé. Ahora, la idea es que nosotros podamos bautizar como queramos el modelo feito. Eso igual es es interesante en el contexto de que hoy día se le tiene mucho miedo al al fight touring y en realidad eh hay modelos super potentes de no grandes cantidades de parámetros que te permiten hacer muy buenos furing y esto eh combinado con el rack, que es esta separación en vectores de la sentencia, te da muy buen resultado. Aquí, si se fijan, el experto analizó las tres sentencias. No sé si alcanza a ver bien el texto. Lo agarrando un poquito más. Ahí está. Criterio de doctrina en común, diferencias relevantes. Precedente más relevante. Se alcanza a ver bien.
+Mauricio Ryan: Sí, se ve.
+
+
+
+
+00:33:45
+
+
+Mauricio Ryan: Sí, sí. Está muy
+pablo Cabezas: Entonces, ahí está la lógica. Ahora tengo estos tres fallos. Ahora podría eliminar esos ese y quiero comparar estos
+Mauricio Ryan: bueno.
+pablo Cabezas: tres. Entonces voy a decir análisis que me compara estos tres. Hay un solapamiento normativo que se hace en base a las normas que tienen y vuelvo a analizar, pero ahora otras tres sentencias. Dejé las primeras dos y seleccioné tras la viña. Si se fijan, está ahí está doctrina de la arbitrariidad. Control de alzada, fallo A, fallo B, fallo C, fallo más relevante, fallo B. De ahí está listo. O adicionalmente a eso, me permite preguntarle al experto y al preguntarle al experto ya dejo de ocupar el RAG y el este prom que está en duro para el análisis de la sentencia y aquí puedo hacer preguntas libres en lenguaje natural. Le podía preguntar qué normas comparte y en qué difieren.
+Mauricio Ryan: de esas tres que tenés seleccionadas. Mm.
+pablo Cabezas: Exacto. Ya ahí está haciendo el proceso. Ahí se va a demar un poquito más porque va a leer las tres
+Mauricio Ryan: Okay.
+pablo Cabezas: sentencias.
+Mauricio Ryan: Sí, le pasa las tres sentencias como contexto y esta pregunta y pero usando el LM
+
+
+
+
+00:35:11
+
+
+pablo Cabezas: Es sentencia igual va a ser un conto. Y ahí está.
+Mauricio Ryan: entrenado.
+pablo Cabezas: Exacto. Como asistente jurídico, acá está normas compartidas, diferencias normativas por todos los artículos y listo. Entonces, tengo dos formas de hacerlo. Tengo la posibilidad de hacer búsquedas directas. Tengo también los filtros acá donde puedo seleccionar por fuero, por materia, por tipo de recurso, por resultado, por tribunal, por norma, por periodo, o directamente puedo ir revisando una por una si quiero y además de eso poder preguntarle a cada sentencia con el modelo de lenguaje para saber efectivamente si esto es eh en la práctica lo que me sirve o no. Y adicionalmente a estas búsquedas que son las sentencias, puedo hacer la consulta al experto. Y la consulta al experto lo hago sin hacer referencia una sentencia en particular, sino que lo hago en base al conocimiento que tiene el F tuning, el modelo F tuneado directamente.
+Mauricio Ryan: Claro, sin rag es más
+pablo Cabezas: Eh, exacto.
+Mauricio Ryan: conceptual.
+pablo Cabezas: más al conocimiento que hoy día tiene el LLM específico sobre toda la información con la cual fue entrenado, que son todas las sentencias, esas 27,000 infracción de Mendoza. Ahora, lo importante acá en el fondo es que se combinan las técnicas y adicionalmente nada de esta información sale de mi computador.
+
+
+
+
+00:37:00
+
+
+Mauricio Ryan: Claro, está todo local. Sí.
+pablo Cabezas: 100% local. Y ahí está. y me dicen las sentencias relacionadas de donde también extrajo la respuesta para tener la analítica completa. Ahora, el resultado podría ser mucho mejor si tuviéramos obviamente el acceso a las eh sentencias. Aquí obviamente el rag eh, o sea, el scrapping tiene sus desventajas eh porque uno no accede nativamente a los a los documentos, sino que hay que hacer todo este proceso de navegación, etcétera, etcétera. Por lo tanto, eh sería lo ideal acceder directamente a todo el contenido. Eh, pero eso es eso es línea general.
+Mario Adaro: Pablito, me encanta. Otra de las cosas, eh,
+pablo Cabezas: Dígame.
+Mario Adaro: ¿vos crees que como técnica y performance es mejor dividir los dataset por tipo de fueros civil, penal, etcétera, y después en todo caso los linkas para para limpiar la base y mejorar la performance del
+pablo Cabezas: Sí,
+Mario Adaro: RAC, No,
+pablo Cabezas: sí, sí.
+Mauricio Ryan: Pero, ¿cómo sería un modelo y
+pablo Cabezas: Y de hecho entre entre el que más se achica un modelo, por ejemplo, que se puede hacer para cortes supremas y otros para fueros de primera instancia o se
+Mauricio Ryan: No.
+
+
+
+
+00:38:18
+
+
+pablo Cabezas: podrían hacer entrenamientos por competencia. Hay tener un modelo experto en materia penal, un un modelo experto en materia civil, un modelo experto en materia de familia y utilizar ML que sean pequeños pero expertos, que esa es en el fondo el la gracia de esto, ¿no? Tú no necesitas un modelo 680 billones de parámetros. Lo que necesitas es un modelo que sea especialista en lo que tú necesitas. Yo necesito un modelo que sea especialista en civil, en laboral, en penal, en familia. Y eso con mi sentencia los puedo hacer perfectamente con un F. Entonces ahí las técnicas de entrenamiento en particular se pueden ir deviendo por competencia, por fuero, por materia y se pueden tener estos modelos separaditos o se puede hacer uno o dos grandes modelos que distribuyan, por ejemplo, eh segunda instancia, cortes, primera instancia, tribunales de primera instancia.
+Mauricio Ryan: Y podríamos empezar con entrenar, hacer fine tuning y aprender y jugar con eso sin rag o solamente rag o conviene encarar las dos cosas a la vez. Eh eh no sé porque aprender las dos cosas a la vez por ahí es complicado,
+pablo Cabezas: Sí,
+Mauricio Ryan: ¿no? eh para los primeros
+pablo Cabezas: conviene conviene encarar las dos cosas a la vez porque se obtienen mejores resultados.
+Mauricio Ryan: pasos.
+pablo Cabezas: Finalmente, un modelo eh experto, un F tuning te sirve para tener contexto especializado más que respuestas especializadas.
+
+
+
+
+00:39:46
+
+
+pablo Cabezas: Si tú tienes contexto especializado, la gracia de esto es que tú no vas a tener que reentrenar el modelo cada vez que suba nueva sentencia, sino que la sentencia la subes al raja.
+Mauricio Ryan: Sí, es el que necesita estar actualizado.
+pablo Cabezas: El modelo de experto era una materia, el el experto es eh sabe mucho del contexto jurídico, de las formas, de cómo van los fallos, de cómo se distribuye, de los conceptos, etcétera, etcétera, etcétera. Cuando hay cambios normativos grandes o específicos, se hace un f tuning, porque efectivamente hay cambios relevantes en la forma en que se analiza la jurisprudencia o el modelo de justicia, pero el RAG es el que vamos actualizando con las sentencias y el modelo queda entrenadito en base a su contexto. Si hay un campo normativo, eh jurídico, político importante en el cual el modelo tenga que saberlo, ahí se hace un factura en específico.
+Mauricio Ryan: recién cuando dijiste de preguntarle al modelo, te trajo los las carátulas de la sentencia y todo. Yo pensé que el modelo sabía de jurisprudencia,
+pablo Cabezas: Exacto.
+Mauricio Ryan: pero no de los nombres de las sentencias con las que se entrenaron o que podía alucinar ahí, ¿no? funciona bien determinístico.
+pablo Cabezas: Exacto. funciona.
+
+
+
+
+00:41:03
+
+
+pablo Cabezas: Es y ahí la lo que pasa es que ahí también está bien determinístico porque el modelo está a una temperatura super baja, entonces le estamos dando poca capacidad de alucinación.
+Mauricio Ryan: Mhm.
+pablo Cabezas: las preguntas van a ser bien respondidas en el contexto de lo que sabe y lo con lo que fue entrenado. Ahora, ese modelo puede tener distintos comportamientos porque ese mismo modelo después tú lo puedes utilizar con una temperatura más mucho más alta y otra configuración para poder redactar sentencias, por ejemplo, o redactar borradores de sentencia,
+Mauricio Ryan: Ah, claro.
+pablo Cabezas: entonces o borradores de resoluciones.
+Mauricio Ryan: Mm.
+pablo Cabezas: Entonces ahí va todo en com uno va configurando los modelos o como lo va utilizando.
+Mauricio Ryan: Yo estoy preguntando mucho. Cualquiera que quiere levante la mano que aprovechemos preguntar.
+Susana Barea: Yo quería consultarte, esto se puede potenciar con lo que es legislación y con el conocimiento general. eh hay un usuario eh que quiere hacer eh tiene como un proyecto donde integra los tres saberes, ¿no? La lo que es la jurisprudencia, lo que son las leyes y se me fue el otro término. Em y la doctrina,
+Mario Adaro: Doctrina
+Maria Celina Abaurre: Doctrina.
+Susana Barea: tal cual y la doctrina. Entonces, eh ese fine tuning podría llegar a tener las tres fuentes de datos para que sea Y
+
+
+
+
+00:42:31
+
+
+pablo Cabezas: completo y suficiente.
+Susana Barea: claro, ahora si se dividen los expertos, porque una de las de las cosas que se como que se va evaluando es los privilegios, los accesos para cuidar, digamos, la privacidad de algunas sentencias y de algunos Entonces, a lo mejor eh gente que trabaje con el fuero laboral no debería ver el penal y viceversa. Entonces, esa separación es la que se podría llegar a usar para eh como poner esas primeras barreras de acceso, digamos, a los usuarios, calificar a los usuarios por grupos y dar el los permisos en función de eso o ya sería más arriba.
+pablo Cabezas: Sí, se podría se podría distribuir. o lo que se puede hacer también ahí es tener una lógica de gente que sean especialistas sobre un modelo materia determinado. Entonces ahí hay que dividir qué es lo más eficiente,
+Susana Barea: Mhm.
+pablo Cabezas: sino que hacer estos entrenamientos separados e quizás no vale la pena hacer entrenamientos tan nucleares en como en materia muy específica, sino que hacerlo un poquito más macro y sobre eso utilizar lógicas agénticas para poder que en este
+Susana Barea: M.
+pablo Cabezas: caso que los de materia penal tengan el agente que solamente le responde materia penal, los de familia solamente respondan sobre familia, los de civil sobre civil, etcétera, etcétera.
+
+
+
+
+00:44:09
+
+
+Susana Barea: No sé si se daría el caso de necesitar un una consulta cruzada, digamos, transversal a los Ajá.
+Marisa: Yo sí, yo sí, sí, eso, yo sí la tendría que tener. Sí,
+Susana Barea: Y
+pablo Cabezas: Sí,
+Marisa: la tendría que tener porque la trazabilidad.
+Susana Barea: eso.
+Marisa: Hay muchos temas que se tocan en materia penal,
+pablo Cabezas: ahí
+Marisa: pero que se tocan en administrativo y se tocan en laboral. Y la única y hoy lo hago por la memoria, solo por la memoria,
+Susana Barea: Mm.
+Marisa: porque todavía no hemos logrado poder,
+Susana Barea: Claro.
+pablo Cabezas: s. Entonces
+Marisa: porque cada uno lo hace en forma estanco,
+pablo Cabezas: ahí,
+Marisa: digamos.
+Susana Barea: Y otra consulta.
+pablo Cabezas: claro, ahí se ocupan se ocupan lógicas que van de cara al usuario finalmente. Entonces se puede distribuir, como te digo, si hacemos dos entrenamientos desde los fueros o desde no sé cómo se dice se viene allá,
+Marisa: Está claro que el 98% del usuario lo haría
+pablo Cabezas: pero apelaciones problemem.
+Marisa: por separado.
+Susana Barea: Eh,
+Marisa: El 98% seríamos muy poquitos los que tendrían usamos,
+Susana Barea: claro,
+
+
+
+
+00:45:10
+
+
+Marisa: digamos, lo miramos desde todos, desde todos en forma sistémica.
+Susana Barea: claro. Ahí habría como una gente inteligente que en función de la pregunta sabe hacia dónde tiene que
+pablo Cabezas: Exacto. Y ahí eh lo podemos hacer a niveles de interfaz.
+Susana Barea: ir.
+pablo Cabezas: Incluso se puede se puede tallar con un login eh y perfilamientos de usuario en donde el perfil eh Mauricio tiene acceso a esto y estos agentes que son especialistas en est y estas competencias o el firmariza tiene acceso a todas las competencias, por lo tanto puede consultar lo que se le dé la gana y buscar como quiera.
+Susana Barea: Mhm.
+pablo Cabezas: Uno puede ir diferenciando a nivel de experiencia de
+Susana Barea: Y los los datos que usaste para el filtrado, digamos,
+pablo Cabezas: usuario.
+Susana Barea: la que calculo que será como la metadata, e lo recuperaste de la misma información que te estaba proveyendo la lista diaria de donde vos escrapeaste o analizaste la sentencia para sacar las entidades?
+pablo Cabezas: Hice las dos cosas,
+Susana Barea: Ajá.
+pablo Cabezas: saqué lo que estaba desde el portal y después cuando hice el abstract saqué metadata. Porque todas las sentencias que ejecuté también tienen un abstract. Entonces ahí aproveché de tomar entidades y agruparlas para llevarlas a la metadata.
+
+
+
+
+00:46:22
+
+
+Susana Barea: Y eso es lo que vos usas como un usas ese concepto del side car para ir a buscar. Usas las dos cosas.
+pablo Cabezas: Exacto. Tal cual.
+Susana Barea: Ajá.
+pablo Cabezas: Entonces ahí lo ideal, como te digo, es es hacer un procesamiento un poco más profundo. Eh, yo lo hice con en base a los que documentos que pude descargar. Habían otros que no estaban descargables, sino que estaba como pedacitos del texto. Entonces ahí tuve que jugar con eso.
+Susana Barea: Claro.
+pablo Cabezas: Ahora lo ideal es hacerlo sobre la documentación completa y sobre esa documentación y ya tú tienes la posibilidad de generar metadata porque no necesariamente la metadata está en el documento como tal, sino que tú la generas en base al contenido y desde ahí tener como una base de metadata bien potente para las
+Susana Barea: Claro.
+pablo Cabezas: búsquedas.
+Susana Barea: Y en los criterios de Chanking, ¿probaste diferentes criterios de Chanking o te tiraste por uno y con ese?
+pablo Cabezas: Sí, es prove distintos criterios y provee distintos modelos. Entonces,
+Susana Barea: Mm.
+pablo Cabezas: una de las cosas más más complejas es saber qué modelo utilizar para poder tener una buena respuesta y una buena recuperación.
+Susana Barea: Claro,
+pablo Cabezas: Entonces,
+
+
+
+
+00:47:28
+
+
+Susana Barea: porque haces el ranking,
+pablo Cabezas: por ejemplo,
+Susana Barea: además, porque viste que hay como hay como diferentes opiniones.
+pablo Cabezas: Exacto.
+Susana Barea: Y si el ranking suma o mete sesgo y
+pablo Cabezas: Mete ruido. Sí. Entonces ahí hay un un trabajo que que es, mira, tiene dos dimensiones.
+Susana Barea: clarom.
+pablo Cabezas: Tiene una eh que es la selección del modelo de de embeding que vas a utilizar y la segunda es el procesamiento de cómo vas ranqueando a la vuelta de la respuesta del de los embedidos. Y eso es más algorítmico que del modelo en
+Susana Barea: Bien.
+pablo Cabezas: sí.
+Susana Barea: Y respecto de las versiones de los modelos, viste que los modelos se están actualizando muy rápido y para la vectorización vas a tener que si si te cambia la versión vas a tener que vectorizar de nuevo, digamos, para que haya eh continuidad, digamos, en toda en todas las capas. para el F tuning también si si nos cambiara la versión del del modelo tendríamos que volver a F
+pablo Cabezas: Exacto.
+Susana Barea: tunar.
+pablo Cabezas: O sea, y ahí va a depender exclusivamente si es que te conviene o no eh hacerlo eh
+Susana Barea: Claro,
+pablo Cabezas: un cambio de modelo.
+
+
+
+
+00:48:41
+
+
+Susana Barea: si te puedes quedar con lo que
+pablo Cabezas: Exacto.
+Susana Barea: aprendió.
+pablo Cabezas: Exacto. Si si tienes un modelo desde lo práctico que es eficiente hoy día y te responde bien, si sale por ejemplo eh 4 y lo quieres hacer en Fun, lo puedes hacer perfectamente. Pero si hoy día tienes una buena respuesta con 3.5 5 o con Gema 4, a veces no te vale la pena hacer el el reentrenamiento, va a depender finalmente de de las decisiones más técnicas y el rendimiento actual que
+Susana Barea: Ah, y los y los agentes no van a influir ahí,
+pablo Cabezas: tenga,
+Susana Barea: que después los agentes no puedan conversar con
+pablo Cabezas: ¿no? Porque lo que se hace es que toda la lógica géntica tiene que ser agnóstica.
+Susana Barea: Ah, bien.
+pablo Cabezas: Eso y eso significa que desde lo práctico tú puedas utilizarlo como cualquier modelo.
+Susana Barea: Ajá. abstraes de Claro,
+pablo Cabezas: O sea, tienes una capa desde lo práctico que te permite decir, mira, tú ocupas una lógica de API que te permite conectarte cualquier tipo de modelo.
+Susana Barea: claro.
+pablo Cabezas: Si el día de mañana quieren pasar a Cloud and Tropic hay un cambio chiquitito o toda la línea de API que son compatibles con Open II, que son la gran mayoría eh es completamente agóstico.
+
+
+
+
+00:49:49
+
+
+pablo Cabezas: cambia y
+Susana Barea: Bien. Mm. Entonces, el curado de las sentencias como para tener eh porque nos podemos encontrar
+pablo Cabezas: listo.
+Susana Barea: con algunas eh sentencias que se en su momento se calificaron como sentencia, pero que no que no lo son específicamente o a veces están como mal configuradas que te dicen que corresponden a un foro y competencia y en realidad están eh corresponden a otro. Eso se tendría que hacer. en la etapa de eh del análisis de la sentencia, donde mismo sacaste la metadata.
+pablo Cabezas: Así es, así es. Si no hay certeza,
+Susana Barea: Ajá.
+pablo Cabezas: es necesario curar la información antes de armar los dataset, en este caso para para pasar al Fing
+Susana Barea: Ajá.
+pablo Cabezas: Primer.
+Mauricio Ryan: en en el Fine Tuning, eh, ¿qué estrategia nos conviene? ¿Memos todas las sentencias o seleccionamos? Porque, por ejemplo, hay muchas sentencias que son copy paste, ¿no? Entonces, eh, se me ocurre que para el RAC sí las cargo todas, pero para el F tuning con que tenga una de las que son todas iguales, ¿es suficiente o las meto todas? Total, 23,
+pablo Cabezas: Yo para este caso,
+Mauricio Ryan: 40 horas.
+
+
+
+
+00:51:05
+
+
+pablo Cabezas: para este caso las ocupé todas entendiendo que que existen matices.
+Mauricio Ryan: Sí, funcionó. Mm.
+pablo Cabezas: Sí, entiendo que existen matices independiente de que las formas sean iguales. Eh, hay ciertos matices que igual el modelo puede consumir y puede comprender. Entonces, eh, para ese contexto, hacer un f tuning con poca data no tiene mucho impacto. Vas a tener en este caso una evolución como significativa. Entonces, por eso es recomendable hacer con un m de datos importante para que el vuelo realmente sea experto y comprenda distintas situaciones, contextos, lógica, etcétera, etcétera. Equipo, me quedan dos minutitos porque me tengo que desconectar.
+Mario Adaro: Sí,
+pablo Cabezas: No sé si si porque tengo que se me cruzó
+Mario Adaro: genial. Mira, genial. Después eh cuando podas hagamos una reunión para ver el tema del sbox. Estamos estamos entusiasmados charlando eso. Ya hablé con Mario para que esta propuesta hacerla para el tema de daño y perjuicio de triunfos seguros. Eh, Mauri, lo que tendríamos que hablar no no pudo subirse Nico de Dirm. No, ¿cómo? No te escucho.
+Mauricio Ryan: Está la gente de Dirmo,
+Mario Adaro: Ah,
+
+
+
+
+00:52:14
+
+
+Mauricio Ryan: está Maxi y está Jimena que están escuchando y estamos grabando justo Nico,
+Mario Adaro: okay.
+Maximo Starvaggi: Sí.
+Mario Adaro: Ah, okay.
+Mauricio Ryan: ¿no? La gente ahí está Máximo.
+Mario Adaro: Bueno,
+Maximo Starvaggi: Eh,
+Mario Adaro: charlemos después una reunión,
+Maximo Starvaggi: exacto.
+Mario Adaro: si te parece, Maxi, con Nico, a ver si el producto le sirve como para que nosotros podamos mostrar esto alguna otra cosa,
+Maximo Starvaggi: Dale.
+Mario Adaro: si la técnica va por ahí, eh, porque tenemos que salir a ver la segunda etapa, eh, y estamos viendo todo el tema de créditos.
+Maximo Starvaggi: Sí,
+Mario Adaro: Ahora vamos a entrar medio en standby con la feria hasta el 20. Yo el 21 ya estoy de vuelta en Argentina, pero en esa semana, segunda de julio,
+Maximo Starvaggi: bien.
+Mario Adaro: perdón, tercera y cuarta y la última, tendríamos que estar definiendo esto para yacar la segunda contratación, ver si esto sirve. Ustedes indíquennos cómo cómo seguimos. Ah,
+Maximo Starvaggi: Dale, dale, dale, Mario.
+Mario Adaro: eh, te te podemos dar si querés el Mauri te puede dar los contactos de Pablo,
+Maximo Starvaggi: Perfecto.
+Mario Adaro: si quieren tener una segunda reunión más más técnica, más
+
+
+
+
+00:53:08
+
+
+Maximo Starvaggi: Excelente. Sí, sí. Nosotros nos llevamos esto, tenemos que hablar porque estos no son servicios de WS,
+Mario Adaro: dale.
+Maximo Starvaggi: pero tenemos que darnos vuelta y entender cuáles son las posibilidades o las bondades que tiene ADS con
+Mario Adaro: Okay,
+Maximo Starvaggi: respecto a a lo que presentó Pablo. Cualquier cosa,
+Mario Adaro: bien.
+Maximo Starvaggi: hago una interconsulta con Pablo que está acá en el en el meet su contacto.
+Mario Adaro: Dale. Buenísimo. Y y Pablito, si quieres, la semana que viene coordinamos con Mauri para ver los sbox, que eso sería más huslap,
+Maximo Starvaggi: Dale.
+Mario Adaro: pero la idea viene bien. Ya lo he estado como pichando entre equipos internos, Pablo y con Gustavo, con un montón de gente y me parece que es nuestro proyecto para el año que viene.
+pablo Cabezas: Super. Fantástico.
+Mario Adaro: Ah, genial equipo.
+pablo Cabezas: Espero que les haya gustado.
+Mario Adaro: Muchas gracias, me encanta.
+pablo Cabezas: Les dejo un abracito gigante.
+Mario Adaro: Sos un crack. Nos vemos.
+Maximo Starvaggi: Muchísimas gracias.
+Maria Celina Abaurre: hermoso como todo lo que haces.
+Mario Adaro: Ciao. Ciao.
+Maximo Starvaggi: Buen fin de semana.
+pablo Cabezas: Besos.
+Gimena Binaghi: Graciasascio.
+Maximo Starvaggi: Chao. Hasta luego.
+pablo Cabezas: Chao.
+
+
+
+
+La transcripción finalizó después de 00:57:51
+
+
+Esta transcripción editable se generó por computadora y puede contener errores. Los usuarios también pueden cambiar el texto después de que se cree.
