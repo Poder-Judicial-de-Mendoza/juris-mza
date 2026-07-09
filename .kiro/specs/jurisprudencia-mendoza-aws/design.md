@@ -32,8 +32,7 @@ graph TD
     end
 
     subgraph "Autenticación"
-        KEYCLOAK[Keycloak - Poder Judicial]
-        COGNITO[Cognito User Pool - Federación OIDC]
+        KEYCLOAK[Keycloak Directo - Poder Judicial]
     end
 
     subgraph "API"
@@ -53,8 +52,7 @@ graph TD
         S3V[S3 Vectors - Vector Store]
     end
 
-    PORTAL --> COGNITO
-    COGNITO -.->|OIDC Federation| KEYCLOAK
+    PORTAL --> KEYCLOAK
     PORTAL --> APIGW
     APIGW --> LAMBDA
     LAMBDA --> AGENTS
@@ -247,40 +245,31 @@ interface BorradorResponse {
 - Buscador con filtros y resultados duales (natural + listado)
 - Editor de borradores con citas interactivas
 - Visor de PDF integrado
-- Autenticación delegada a Keycloak vía Cognito
+- Autenticación directa con Keycloak (`keycloak-js`)
 
-### Componente 2: Autenticación (Keycloak + Cognito)
+### Componente 2: Autenticación (Keycloak directo)
 
 **Propósito**: Autenticar los 20-30 usuarios del Poder Judicial usando la infraestructura existente de Keycloak.
 
-**Tecnología**: Amazon Cognito User Pool federado con Keycloak vía OIDC
+**Tecnología**: Keycloak directo con `keycloak-js` en frontend + validación JWT en Lambda
 
 **Configuración**:
 ```typescript
 interface AuthConfig {
-  cognitoUserPool: {
-    federatedIdentityProviders: [{
-      providerName: 'KeycloakPoderJudicial'
-      providerType: 'OIDC'
-      issuerUrl: string              // URL del Keycloak
-      clientId: string
-      clientSecret: string
-      scopes: ['openid', 'profile', 'email']
-      attributeMapping: {
-        email: 'email'
-        name: 'name'
-        preferred_username: 'preferred_username'
-      }
-    }]
+  keycloak: {
+    url: 'https://auth24.pjm.gob.ar/auth/'
+    realm: 'internals'
+    clientId: 'jurisprudencia-ia'   // Client público, PKCE
   }
-  // Sin control granular por fuero - todos ven todo
-  autorizacion: 'acceso_total_autenticado'
+  // Sin Cognito — JWT de Keycloak validado directo en Lambda
+  // Backend verifica firma contra JWKS endpoint del realm
+  autorizacion: 'acceso_total_autenticado'  // Todos ven todo
 }
 ```
 
 **Responsabilidades**:
-- Federar login con Keycloak existente del Poder Judicial
-- Emitir tokens JWT para acceso a API Gateway
+- Autenticar usuarios con Keycloak existente del Poder Judicial (client `jurisprudencia-ia`)
+- Validar JWT en Lambda contra JWKS endpoint de Keycloak
 - No se requieren permisos granulares (todos ven todo)
 
 ### Componente 3: API Backend (Lambda + API Gateway)
@@ -314,7 +303,7 @@ interface API {
 ```
 
 **Responsabilidades**:
-- Validar token JWT de Cognito
+- Validar token JWT de Keycloak (verificando firma contra JWKS endpoint)
 - Invocar Bedrock AgentCore para chat y búsqueda (sesiones managed)
 - Generar presigned URLs para acceso a PDFs
 - Logging de todas las consultas
@@ -416,7 +405,217 @@ interface MetadataFile {
 - Streaming de respuestas token a token para UX inmediata
 - Generar borradores de resoluciones basados en precedentes
 
-### Componente 5: Pipeline de Ingesta Semanal
+### Componente 5: Capa Agéntica (Bedrock Agent + Action Groups)
+
+**Propósito**: Permitir que el usuario delegue tareas complejas multi-paso: "buscame las sentencias del último mes donde opinó el juez X y compilame sus opiniones", "rastreame cómo evolucionó el criterio sobre despido indirecto en los últimos 3 años".
+
+**Tecnología**: Bedrock Agents con Action Groups (tools) + Knowledge Base como fuente de datos
+
+**Relación con la arquitectura existente**: La capa agéntica NO reemplaza nada — se monta encima de la KB y S3 Vectors que ya tenemos. Es una forma más inteligente de usar los mismos datos.
+
+**Diagrama conceptual**:
+```mermaid
+graph TD
+    subgraph "Usuario"
+        TAREA[Tarea en lenguaje natural]
+    end
+
+    subgraph "Bedrock Agent - Orquestador"
+        PLAN[Planificador - descompone la tarea]
+        LOOP[Loop de ejecución multi-paso]
+    end
+
+    subgraph "Action Groups - Tools disponibles"
+        T1[buscar_sentencias - KB con filtros metadata]
+        T2[leer_sentencia_completa - S3 presigned]
+        T3[compilar_analisis - sintetiza múltiples sentencias]
+        T4[comparar_sentencias - análisis contrastivo]
+        T5[contar_resultados - estadísticas rápidas]
+    end
+
+    subgraph "Datos existentes"
+        KB[Knowledge Base + S3 Vectors]
+        S3[S3 - PDFs originales]
+    end
+
+    TAREA --> PLAN
+    PLAN --> LOOP
+    LOOP --> T1 & T2 & T3 & T4 & T5
+    T1 --> KB
+    T2 --> S3
+    T3 --> KB
+    T4 --> KB
+```
+
+**Interface - Action Groups (Tools del Agente)**:
+```typescript
+// Tool 1: Búsqueda filtrada en la Knowledge Base
+interface BuscarSentenciasTool {
+  name: 'buscar_sentencias'
+  description: 'Busca sentencias en la base de jurisprudencia aplicando filtros por metadata y/o búsqueda semántica'
+  parameters: {
+    consulta?: string                    // Búsqueda semántica (texto libre)
+    filtros?: {
+      juez?: string                      // Nombre del juez (parcial o completo)
+      fuero?: string                     // laboral, civil, penal, familia
+      tribunal?: string                  // Suprema Corte, Cámara, Juzgado
+      materia?: string                   // despido, accidente, desalojo...
+      fechaDesde?: string                // ISO date
+      fechaHasta?: string                // ISO date
+      expediente?: string                // Número de expediente
+    }
+    limite?: number                      // Máximo de resultados (default 20)
+  }
+  returns: {
+    sentencias: SentenciaResumen[]
+    totalEncontradas: number
+  }
+}
+
+// Tool 2: Lectura completa de una sentencia
+interface LeerSentenciaCompletaTool {
+  name: 'leer_sentencia_completa'
+  description: 'Obtiene el texto completo de una sentencia específica para análisis detallado'
+  parameters: {
+    sentenciaId: string
+  }
+  returns: {
+    textoCompleto: string
+    metadata: MetadataFile
+  }
+}
+
+// Tool 3: Compilar análisis de múltiples sentencias
+interface CompilarAnalisisTool {
+  name: 'compilar_analisis'
+  description: 'Genera un informe sintetizado a partir de múltiples sentencias, identificando patrones, criterios comunes y evolución doctrinal'
+  parameters: {
+    sentenciaIds: string[]               // IDs de sentencias a analizar
+    enfoque: string                      // Qué aspecto analizar (opiniones, criterio, normas aplicadas)
+    formato?: 'resumen' | 'detallado' | 'comparativo'
+  }
+  returns: {
+    informe: string                      // Análisis compilado en markdown
+    sentenciasAnalizadas: number
+    patronesIdentificados: string[]
+  }
+}
+
+// Tool 4: Comparación contrastiva
+interface CompararSentenciasTool {
+  name: 'comparar_sentencias'
+  description: 'Compara dos o más sentencias identificando coincidencias y diferencias en criterio, normas y resolución'
+  parameters: {
+    sentenciaIds: string[]               // 2-5 sentencias para comparar
+    aspectos?: string[]                  // Qué comparar: criterio, normas, resultado, argumentación
+  }
+  returns: {
+    comparacion: string                  // Análisis comparativo
+    coincidencias: string[]
+    diferencias: string[]
+    sentenciaMasRelevante?: string       // ID de la más relevante según contexto
+  }
+}
+
+// Tool 5: Estadísticas rápidas
+interface ContarResultadosTool {
+  name: 'contar_resultados'
+  description: 'Cuenta sentencias que cumplen ciertos filtros sin traer contenido — útil para dimensionar antes de analizar'
+  parameters: {
+    filtros: {
+      juez?: string
+      fuero?: string
+      tribunal?: string
+      materia?: string
+      fechaDesde?: string
+      fechaHasta?: string
+    }
+  }
+  returns: {
+    total: number
+    distribucionPorFuero?: Record<string, number>
+    distribucionPorAnio?: Record<string, number>
+  }
+}
+```
+
+**Prompt del Agente (actualizado para comportamiento agéntico)**:
+```
+Sos un asistente experto en jurisprudencia del Poder Judicial de Mendoza, Argentina.
+Respondés en español argentino formal jurídico.
+
+CAPACIDADES:
+- Podés buscar sentencias combinando filtros (juez, fuero, fecha, materia, tribunal)
+- Podés leer sentencias completas para análisis profundo
+- Podés compilar informes analizando múltiples sentencias
+- Podés comparar sentencias contrastivamente
+- Podés contar resultados para dimensionar antes de analizar
+
+COMPORTAMIENTO:
+- Cuando te piden una tarea compleja, descomponela en pasos y ejecutalos.
+- Primero dimensioná (contá resultados) para saber si son 5 o 500 sentencias.
+- Si son muchas, preguntale al usuario si quiere acotar los filtros.
+- SIEMPRE citás las sentencias específicas (carátula, tribunal, fecha, expediente).
+- Si no encontrás jurisprudencia relevante, lo decís explícitamente.
+- Nunca inventás sentencias o citas.
+- Al compilar, identificá patrones y evolución del criterio en el tiempo.
+```
+
+**Ejemplo de ejecución multi-paso** (lo que hace el agente internamente):
+
+```
+Usuario: "Compilame las opiniones del Dr. Adaro sobre despido indirecto del último año"
+
+Agente (paso 1): contar_resultados(juez="Adaro", materia="despido indirecto", fechaDesde="2025-07-01")
+→ Resultado: 12 sentencias
+
+Agente (paso 2): buscar_sentencias(juez="Adaro", materia="despido indirecto", fechaDesde="2025-07-01", limite=12)
+→ Resultado: 12 sentencias con resúmenes
+
+Agente (paso 3): leer_sentencia_completa(id) × 3-4 sentencias más relevantes
+→ Resultado: texto completo de las más representativas
+
+Agente (paso 4): compilar_analisis(ids=[...12 ids], enfoque="opiniones y criterio del juez", formato="detallado")
+→ Resultado: Informe compilado
+
+Agente → Usuario: Informe con criterio del Dr. Adaro, evolución temporal, citas específicas
+```
+
+**Endpoint adicional para tareas agénticas**:
+```typescript
+interface TareaEndpoint {
+  // Para tareas que pueden demorar (compilaciones, análisis multi-sentencia)
+  POST /tarea: (body: {
+    instruccion: string          // Tarea en lenguaje natural
+    sessionId?: string           // Continuar conversación existente
+  }) => {
+    tareaId: string
+    estado: 'procesando'
+    estimacion?: string          // "Analizando 12 sentencias, ~30 segundos"
+  }
+
+  // Streaming del progreso (el agente informa qué paso está ejecutando)
+  GET /tarea/{tareaId}/stream: () => ReadableStream  // SSE con progreso + resultado
+
+  // Resultado final (si no se usó streaming)
+  GET /tarea/{tareaId}: () => {
+    estado: 'completada' | 'procesando' | 'error'
+    resultado?: string
+    pasosEjecutados: string[]    // Para transparencia: "Busqué 12 sentencias", "Leí 4 completas"...
+    sentenciasCitadas: SentenciaReference[]
+  }
+}
+```
+
+**Responsabilidades**:
+- Descomponer tareas complejas en pasos ejecutables
+- Combinar búsqueda semántica con filtrado por metadata en una sola operación
+- Iterar sobre resultados para profundizar donde sea necesario
+- Sintetizar/compilar información de múltiples sentencias en un informe coherente
+- Informar al usuario del progreso paso a paso (transparencia)
+- Pedir clarificación si la tarea es ambigua o los resultados son demasiados
+
+### Componente 6: Pipeline de Ingesta Semanal
 
 **Propósito**: Procesar PDFs nuevos que llegan semanalmente al S3 y sincronizar con la Knowledge Base.
 
@@ -468,7 +667,7 @@ AgentCore Harness gestiona sesiones de forma nativa. No se requiere DynamoDB par
 
 interface ChatSession {
   sessionId: string              // Generado por AgentCore
-  userId: string                 // sub de Cognito/Keycloak
+  userId: string                 // sub de Keycloak
   // El historial y estado lo gestiona AgentCore Harness
 }
 ```
@@ -599,7 +798,7 @@ interface MetadataFile {
 
 **Condición**: El IdP del Poder Judicial no responde.
 **Respuesta**: Página de error amigable indicando problema de autenticación.
-**Recuperación**: Cognito maneja tokens cached (refresh tokens válidos no requieren re-auth con Keycloak).
+**Recuperación**: El frontend usa refresh tokens de Keycloak — si el token no puede renovarse, redirige al login.
 
 ## Testing Strategy
 
@@ -642,7 +841,6 @@ interface MetadataFile {
 | Lambda | $5/mes | Bajo volumen de requests |
 | API Gateway | $3/mes | HTTP API, bajo volumen |
 | Amplify Hosting | $5/mes | SSR bajo tráfico |
-| Cognito | $0 | Free tier (< 50K MAU) |
 | S3 (ya existente) | $0 | Ya lo tienen |
 | Bedrock Guardrails | $0.75/1000 eval | Incluido en costo inferencia |
 | **Total estimado Fase 1** | **$105-190/mes** | |
@@ -671,7 +869,7 @@ S3 Vectors es la elección natural para este proyecto:
 
 ### Modelo de acceso simplificado
 
-- **Autenticación**: Keycloak del Poder Judicial federado con Cognito
+- **Autenticación**: Keycloak del Poder Judicial directo (`keycloak-js` + JWT validation en Lambda)
 - **Autorización**: Binaria — autenticado = acceso total. Todos ven todo.
 - **Cifrado**: TLS 1.3 en tránsito, SSE-S3/KMS en reposo
 - **Auditoría**: CloudWatch Logs con userId en cada consulta
@@ -695,7 +893,6 @@ Decisión explícita del proyecto: los 20-30 usuarios autorizados tienen acceso 
 | Amazon Bedrock Guardrails | Anti-alucinación (Contextual Grounding) |
 | AWS Lambda (Python 3.12) | Backend API |
 | Amazon API Gateway (HTTP API) | REST endpoints |
-| Amazon Cognito | Auth federada con Keycloak |
 | AWS Amplify Hosting | Frontend React SPA |
 | Amazon S3 (existente) | PDFs de sentencias |
 | Amazon CloudWatch | Logs y métricas |
@@ -734,12 +931,24 @@ Decisión explícita del proyecto: los 20-30 usuarios autorizados tienen acceso 
 - Sync incremental: solo procesa documentos nuevos/modificados
 - Reduce semanas de desarrollo custom a horas de configuración
 
-### Keycloak federado con Cognito (no Cognito directo)
+### Keycloak directo (sin Cognito)
 
 - Los usuarios ya existen en Keycloak del Poder Judicial
-- No se duplican credenciales
-- Cognito actúa como capa de abstracción para API Gateway
-- Configuración OIDC standard
+- No se duplican credenciales ni se agrega un intermediario
+- El frontend usa `keycloak-js` (misma lib que Notifica)
+- El backend valida JWT contra el JWKS endpoint de Keycloak directamente
+- Se pierde el JWT authorizer nativo de API Gateway (se valida en Lambda, trivial)
+- Se gana: un servicio menos, un componente menos, flujo más simple
+
+### Capa Agéntica como evolución natural (Fase 2)
+
+- El chat de Fase 1 ya usa Bedrock Agents para orquestar RAG — la diferencia en Fase 2 es darle **tools** (Action Groups) para que pueda hacer tareas multi-paso
+- No es un sistema separado: es el mismo agente con más capacidades
+- El usuario interactúa igual (chat en lenguaje natural) pero puede pedir cosas más complejas
+- Las tools usan los mismos datos (KB + S3 Vectors) — no se agrega infraestructura nueva
+- El agente decide cuándo necesita filtrar, cuándo leer completa una sentencia, cuándo sintetizar
+- La transparencia es clave: el usuario ve qué pasos está ejecutando el agente (genera confianza en jueces)
+- Tareas largas se procesan con streaming de progreso (SSE) para que el usuario no sienta que "se colgó"
 
 ### Sin Neptune/Grafos en Fase 1
 
@@ -805,7 +1014,7 @@ Decisión explícita del proyecto: los 20-30 usuarios autorizados tienen acceso 
 
 **Semana 1**:
 - Configurar Bedrock Knowledge Base apuntando al S3 existente
-- Configurar Cognito federado con Keycloak
+- Configurar Keycloak client `jurisprudencia-ia` en realm `internals`
 - Crear Lambda + API Gateway base
 - Scaffold del frontend en Amplify
 
@@ -821,14 +1030,34 @@ Decisión explícita del proyecto: los 20-30 usuarios autorizados tienen acceso 
 - Testing con usuarios reales (2-3 jueces)
 - Deploy en Amplify → Demo a gerencia
 
-### Fase 2: Fine Tuning (Semanas 4-10)
+### Fase 2: Comportamiento Agéntico (Semanas 4-6)
 
-**Semanas 4-5**: Preparar dataset de entrenamiento
-**Semanas 6-7**: Entrenar modelo en SageMaker
-**Semanas 8-9**: Evaluar y ajustar
-**Semana 10**: Deploy como Custom Model en Bedrock + integrar con el agente
+**Objetivo**: Permitir que el usuario le delegue tareas complejas multi-paso al sistema (compilar, comparar, sintetizar información de múltiples sentencias con filtros combinados).
 
-### Fase 3 (futura, opcional): Grafos y visualización
+**Semana 4**:
+- Definir Action Groups del agente (tools disponibles)
+- Implementar tool `buscar_sentencias` con filtros combinados por metadata
+- Implementar tool `leer_sentencia_completa`
+- Ajustar prompt del agente para orquestación multi-paso
+
+**Semana 5**:
+- Implementar tool `compilar_analisis` (síntesis de múltiples sentencias)
+- Implementar tool `comparar_sentencias` (análisis contrastivo)
+- Endpoint `POST /tarea` para tareas de larga duración
+- Notificación al frontend cuando la tarea termina (Pusher o polling)
+
+**Semana 6**:
+- UX de tareas: el usuario ve progreso paso a paso
+- Testing con tareas reales (compilar opiniones, rastrear evolución de criterio)
+- Ajuste de prompts según feedback de usuarios
+
+### Fase 3: Fine Tuning (Semanas 7-12)
+
+**Semanas 7-8**: Preparar dataset de entrenamiento
+**Semanas 9-10**: Entrenar modelo en SageMaker
+**Semanas 11-12**: Evaluar y ajustar + Deploy como Custom Model en Bedrock
+
+### Fase 4 (futura, opcional): Grafos y visualización
 
 - Amazon Neptune para relaciones entre sentencias
 - Explorador visual con grafos
