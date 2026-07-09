@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "aws-docs": {
+      "command": "/home/mauricio/.local/bin/uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "bedrock-kb": {
+      "command": "/home/mauricio/.local/bin/uvx",
+      "args": ["awslabs.bedrock-kb-retrieval-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_REGION": "us-east-1"
+      },
+      "disabled": true,
+      "autoApprove": []
+    }
+  }
+}

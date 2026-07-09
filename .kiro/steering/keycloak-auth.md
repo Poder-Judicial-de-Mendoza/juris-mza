@@ -107,16 +107,18 @@ async def validar_token(token: str) -> dict:
 
 ## API Gateway — Authorizer sin Cognito
 
-Sin Cognito no podés usar el JWT authorizer nativo de API Gateway. Dos opciones:
+Sin Cognito no se usa el JWT authorizer nativo de API Gateway. Estrategia definida:
 
-**Opción A (recomendada)**: Validar JWT en cada Lambda handler (con decorator/middleware)
-- Más simple, sin configuración extra en API Gateway
-- Patrón: decorator `@requiere_auth` en cada endpoint
+**Lambda Authorizer custom** (centralizado):
+- Se ejecuta antes del handler en API Gateway
+- Valida JWT contra JWKS de Keycloak
+- Cachea resultado por token (TTL 300s, reduce llamadas al JWKS)
+- Retorna policy IAM que permite/deniega acceso
+- Extrae `sub`, `email`, `preferred_username` y los pasa como context al handler
 
-**Opción B**: Lambda authorizer custom en API Gateway
-- Se ejecuta antes del handler
-- Cachea resultado por token (reduce llamadas)
-- Más complejo de configurar pero centraliza la validación
+Para los endpoints en **AgentCore Runtime**, la validación JWT se hace en el propio agente (middleware Python).
+
+**Decisión final**: NO usar Cognito. El Poder Judicial ya tiene Keycloak funcional y todos los sistemas internos (Notifica, etc.) lo usan directamente.
 
 ## Refresh de token
 

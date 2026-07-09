@@ -7,6 +7,7 @@
 - **Despliegue**: AWS Amplify Hosting (SPA estática)
 - **Auth**: `keycloak-js` directo (sin Cognito)
 - **PDF**: react-pdf o iframe con presigned URL
+- **Streaming**: `fetch` + `ReadableStream` contra API Gateway (response streaming)
 
 ## Estructura del Proyecto
 
@@ -25,12 +26,14 @@ frontend/
 │   │   ├── TarjetaSentencia.tsx
 │   │   ├── FiltrosBusqueda.tsx
 │   │   ├── EditorBorrador.tsx
+│   │   ├── ProgresoAgente.tsx  # Muestra pasos del agente en tiempo real
 │   │   └── Layout.tsx
 │   ├── servicios/            # Comunicación con API
-│   │   ├── api.ts            # Fetch wrapper con auth
-│   │   └── auth.ts           # Configuración Amplify/Cognito
+│   │   ├── api.ts            # Fetch wrapper con auth + streaming
+│   │   └── auth.ts           # Configuración keycloak-js
 │   ├── hooks/                # Custom hooks
 │   │   ├── useChat.ts
+│   │   ├── useStreaming.ts   # Hook para leer response streams
 │   │   └── useAuth.ts
 │   └── tipos/                # TypeScript interfaces
 │       └── index.ts
@@ -43,7 +46,7 @@ frontend/
 └── .env.example
 ```
 
-## Autenticación
+## Autenticación (Keycloak directo, sin Cognito)
 - **Control de Acceso**: Keycloak directo (realm `internals`) usando `keycloak-js`
 - **Flujo**: PKCE (Authorization Code + PKCE) — client público sin secret
 - **Librería**: `keycloak-js` (misma que Notifica)
@@ -89,14 +92,56 @@ Diseño profesional, sobrio y que inspire confianza institucional.
 - Focus visible en navegación con teclado
 
 ## Streaming de Respuestas
-- Usar `fetch` con `ReadableStream` para leer respuestas token a token
-- Mostrar respuesta del chat mientras se genera (efecto typing)
-- No usar WebSockets — streaming via HTTP response body es suficiente
+
+El frontend consume streaming desde API Gateway REST API con `transferMode: STREAM`:
+
+```typescript
+async function consultarAgente(mensaje: string, sessionId: string) {
+  const respuesta = await fetch(`${API_URL}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ mensaje, sessionId }),
+  })
+
+  const lector = respuesta.body?.getReader()
+  const decodificador = new TextDecoder()
+
+  while (true) {
+    const { done, value } = await lector!.read()
+    if (done) break
+    const chunk = decodificador.decode(value, { stream: true })
+    // Procesar chunk (puede ser texto, metadata de tool, o cita)
+    procesarChunk(chunk)
+  }
+}
+```
+
+- API Gateway REST API con Lambda proxy y `transferMode: STREAM`
+- El agente envía chunks con formato delimitado (texto + metadata de pasos + citas)
+- No se usan WebSockets — streaming via HTTP response body es suficiente
+- Timeout extendido hasta 15 minutos (no el límite clásico de 29s)
+
+## Componente ProgresoAgente
+
+Muestra al usuario qué está haciendo el agente en tiempo real:
+
+```
+🔍 Buscando sentencias sobre "despido indirecto"... (12 encontradas)
+📖 Leyendo sentencia "García c/ Empresa SA"...
+📊 Compilando análisis de 4 sentencias...
+✅ Informe listo
+```
+
+Esto genera confianza en los jueces (transparencia del proceso).
 
 ## Variables de Entorno
 
 ```env
 VITE_API_URL=https://xxx.execute-api.us-east-1.amazonaws.com
+VITE_AGENTCORE_URL=https://xxx.agentcore.us-east-1.amazonaws.com
 VITE_KEYCLOAK_URL=https://auth24.pjm.gob.ar/auth/
 VITE_KEYCLOAK_REALM=internals
 VITE_KEYCLOAK_CLIENT_ID=jurisprudencia-ia

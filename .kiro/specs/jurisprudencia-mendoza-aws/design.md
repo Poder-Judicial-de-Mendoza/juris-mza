@@ -2,12 +2,13 @@
 
 ## Overview
 
-Sistema de búsqueda semántica y asistente experto en jurisprudencia para el Poder Judicial de Mendoza. Desarrollado en dos fases sobre servicios gestionados de AWS para máxima velocidad de entrega.
+Sistema de búsqueda semántica y asistente experto en jurisprudencia para el Poder Judicial de Mendoza. Desarrollado sobre Strands Agents SDK + AgentCore Runtime + Bedrock Knowledge Bases.
 
-**Funcionalidades core (prioridad)**:
+**Funcionalidades core**:
 1. Chat experto en jurisprudencia mendocina (responde preguntas citando sentencias reales)
 2. Buscador semántico de sentencias (resultados como listado + respuesta en lenguaje natural)
 3. Generador de borradores de resoluciones
+4. Tareas agénticas multi-paso (compilar criterios, comparar sentencias, rastrear evolución)
 
 **Contexto técnico**:
 - ~27,000 sentencias en PDF (texto embebido) ya en S3, actualizadas semanalmente
@@ -17,13 +18,14 @@ Sistema de búsqueda semántica y asistente experto en jurisprudencia para el Po
 - Frontend desplegado en AWS Amplify
 - Prioridad: precisión en las respuestas citando sentencias reales
 
-**Estrategia de dos fases**:
-- **Fase 1 (2-3 semanas)**: RAG puro con Claude Sonnet 4.6 + Bedrock Knowledge Bases + AgentCore → Demo funcional
-- **Fase 2 (6-8 semanas adicionales)**: Fine Tuning para conocimiento conceptual profundo + redacción de borradores
+**Estrategia de fases**:
+- **Fase 1 (3-4 semanas)**: Agente con Strands SDK + KB + tools básicos → Demo funcional
+- **Fase 2 (2-3 semanas)**: UX avanzada, borradores, comparaciones, progreso paso a paso
+- **Fase 3 (6-8 semanas)**: Fine Tuning para conocimiento conceptual + redacción judicial
 
 ## Architecture
 
-### Fase 1: RAG con Bedrock Knowledge Bases
+### Arquitectura General
 
 ```mermaid
 graph TD
@@ -32,60 +34,46 @@ graph TD
     end
 
     subgraph "Autenticación"
-        KEYCLOAK[Keycloak Directo - Poder Judicial]
+        KEYCLOAK[Keycloak Directo - realm internals]
     end
 
-    subgraph "API"
-        APIGW[API Gateway - HTTP API]
-        LAMBDA[Lambda - Python]
+    subgraph "Agente IA - AgentCore Runtime"
+        STRANDS[Strands Agent - Python]
+        TOOLS[Tools: buscar, leer, compilar, comparar, contar, borrador]
+        MEMORY[AgentCore Memory - sesiones]
+    end
+
+    subgraph "API Utilitaria - Lambda + API Gateway"
+        APIGW[API Gateway REST - streaming enabled]
+        LAMBDA[Lambda Python - FastAPI + Mangum]
     end
 
     subgraph "IA - Amazon Bedrock"
         KB[Bedrock Knowledge Bases]
-        CLAUDE[Claude Sonnet 4.6 - On-demand]
+        CLAUDE[Claude Sonnet 5 - On-demand]
         EMBED[Amazon Titan Embeddings V2]
-        AGENTS[Bedrock Agents - Orquestación]
+        GUARD[Bedrock Guardrails - Contextual Grounding]
     end
 
     subgraph "Datos"
-        S3[S3 - PDFs Sentencias existente]
+        S3[S3 - PDFs Sentencias - existente cross-account]
         S3V[S3 Vectors - Vector Store]
     end
 
     PORTAL --> KEYCLOAK
+    PORTAL --> STRANDS
     PORTAL --> APIGW
     APIGW --> LAMBDA
-    LAMBDA --> AGENTS
-    AGENTS --> KB
-    AGENTS --> CLAUDE
+    STRANDS --> TOOLS
+    STRANDS --> MEMORY
+    STRANDS --> CLAUDE
+    STRANDS --> GUARD
+    TOOLS --> KB
+    TOOLS --> S3
     KB --> EMBED
     KB --> S3V
     KB --> S3
-```
-
-### Fase 2: Fine Tuning (adicional)
-
-```mermaid
-graph TD
-    subgraph "Entrenamiento"
-        SAGEMAKER[SageMaker - Fine Tuning]
-        S3_DATASET[S3 - Dataset preparado]
-    end
-
-    subgraph "Modelo Custom"
-        BEDROCK_CUSTOM[Bedrock - Custom Model Import]
-    end
-
-    subgraph "Uso"
-        AGENTS2[Bedrock Agents]
-        CLAUDE2[Claude Sonnet 4.6 - RAG]
-        CUSTOM_MODEL[Modelo FT - Conceptual/Redacción]
-    end
-
-    S3_DATASET --> SAGEMAKER
-    SAGEMAKER --> BEDROCK_CUSTOM
-    AGENTS2 --> CLAUDE2
-    AGENTS2 --> CUSTOM_MODEL
+    LAMBDA --> S3
 ```
 
 ### Pipeline de Ingesta Semanal
@@ -93,10 +81,8 @@ graph TD
 ```mermaid
 graph LR
     S3_NEW[S3 - PDFs nuevos semanales] --> EVENT[EventBridge Schedule]
-    EVENT --> SF[Step Functions]
-    SF --> LAMBDA_EXTRACT[Lambda - pypdf extracción]
-    LAMBDA_EXTRACT --> LAMBDA_CHUNK[Lambda - Chunking]
-    LAMBDA_CHUNK --> KB_SYNC[Bedrock KB - Sync Data Source]
+    EVENT --> LAMBDA_META[Lambda - Generar .metadata.json]
+    LAMBDA_META --> KB_SYNC[Bedrock KB - Sync Data Source]
     KB_SYNC --> S3V[S3 Vectors - Índice actualizado]
 ```
 
@@ -106,73 +92,40 @@ graph LR
 sequenceDiagram
     participant U as Usuario
     participant P as Portal (Amplify)
-    participant API as API Gateway
-    participant L as Lambda
-    participant AG as Bedrock Agent
+    participant AG as Strands Agent (AgentCore)
     participant KB as Knowledge Base
-    participant C as Claude Sonnet 4.6
+    participant C as Claude Sonnet 5
 
     U->>P: "¿Qué dice la jurisprudencia sobre despido por enfermedad?"
-    P->>API: POST /chat
-    API->>L: Invoca
-    L->>AG: Pregunta + sessionId
-    AG->>KB: Retrieve (búsqueda semántica)
-    KB-->>AG: Top-K chunks relevantes con metadata
-    AG->>C: Pregunta + chunks como contexto
-    C-->>AG: Respuesta citando sentencias reales
-    AG-->>L: Respuesta + fuentes
-    L-->>API: JSON response
-    API-->>P: Stream response
-    P-->>U: Respuesta con citas clickeables
+    P->>AG: POST (mensaje + sessionId + JWT)
+    AG->>AG: Razona: necesito buscar en KB
+    AG->>KB: tool: buscar_sentencias(consulta="despido enfermedad")
+    KB-->>AG: Top-K chunks con metadata
+    AG->>AG: Razona: tengo contexto suficiente para responder
+    AG->>C: Genera respuesta citando sentencias
+    C-->>AG: Respuesta con citas
+    AG-->>P: Stream: texto + citas + pasos ejecutados
+    P-->>U: Respuesta formándose en tiempo real
 ```
 
-### Flujo: Buscador Semántico
-
-```mermaid
-sequenceDiagram
-    participant U as Usuario
-    participant P as Portal (Amplify)
-    participant API as API Gateway
-    participant L as Lambda
-    participant KB as Knowledge Base
-    participant C as Claude Sonnet 4.6
-
-    U->>P: Busca "arbitrariedad por omisión de prueba"
-    P->>API: POST /buscar
-    API->>L: query + filtros opcionales
-    L->>KB: Retrieve top-20 chunks
-    KB-->>L: Chunks rankeados + metadata
-    L->>C: "Resume estos resultados en lenguaje natural"
-    C-->>L: Resumen + highlights
-    L-->>API: { resumen, resultados[] }
-    API-->>P: Response
-    P-->>U: Resumen + listado de sentencias
-```
-
-### Flujo: Generador de Borradores
+### Flujo: Tarea Agéntica Multi-paso
 
 ```mermaid
 sequenceDiagram
     participant U as Usuario
     participant P as Portal
-    participant API as API Gateway
-    participant L as Lambda
-    participant AG as Bedrock Agent
-    participant KB as Knowledge Base
-    participant C as Claude Sonnet 4.6
+    participant AG as Strands Agent
 
-    U->>P: Describe caso + tipo de resolución
-    P->>API: POST /generar-borrador
-    API->>L: caso, tipo, instrucciones
-    L->>AG: Busca jurisprudencia similar
-    AG->>KB: Retrieve sentencias similares
-    KB-->>AG: Precedentes relevantes
-    AG->>C: Genera borrador (temp=0.7) con precedentes
-    C-->>AG: Borrador de resolución
-    AG-->>L: Borrador + sentencias citadas
-    L-->>API: Response
-    API-->>P: Borrador editable + citas
-    P-->>U: Editor con borrador + referencias
+    U->>P: "Compilame las opiniones del Dr. Adaro sobre despido indirecto del último año"
+    P->>AG: Tarea + sessionId
+    AG->>AG: Step 1: contar_resultados(juez="Adaro", materia="despido indirecto", fechaDesde="2025-07")
+    AG-->>P: Stream: "🔍 Encontré 12 sentencias..."
+    AG->>AG: Step 2: buscar_sentencias(juez="Adaro", materia="despido indirecto", limite=12)
+    AG-->>P: Stream: "📖 Leyendo las más relevantes..."
+    AG->>AG: Step 3: leer_sentencia(id) × 4 más relevantes
+    AG->>AG: Step 4: compilar_analisis(ids=[...], enfoque="criterio del juez")
+    AG-->>P: Stream: Informe compilado con citas
+    P-->>U: Informe completo con transparencia de pasos
 ```
 
 ## Components and Interfaces
@@ -185,18 +138,12 @@ sequenceDiagram
 
 **Interface**:
 ```typescript
-interface AppPages {
-  ChatExperto: React.Component        // Chat principal con el asistente
-  BuscadorSemantico: React.Component  // Búsqueda con resultados
-  GeneradorBorradores: React.Component // Generador de resoluciones
-  VisorSentencia: React.Component     // Detalle de una sentencia
-}
-
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
-  sources?: SentenciaReference[]      // Sentencias citadas
+  sources?: SentenciaReference[]
+  pasosEjecutados?: string[]        // Transparencia del agente
   timestamp: Date
 }
 
@@ -205,8 +152,8 @@ interface SentenciaReference {
   caratula: string
   fecha: string
   tribunal: string
-  fragmentoRelevante: string          // Extracto que sustenta la respuesta
-  s3Url: string                       // Link al PDF original
+  fragmentoRelevante: string
+  s3Url: string                     // Link al PDF original
 }
 
 interface BusquedaRequest {
@@ -217,41 +164,43 @@ interface BusquedaRequest {
     fechaDesde?: string
     fechaHasta?: string
     materia?: string
+    juez?: string
   }
-  limit?: number                      // default 20
+  limit?: number
 }
 
 interface BusquedaResponse {
-  resumenNatural: string              // Respuesta en lenguaje natural
-  resultados: SentenciaResultado[]    // Listado de sentencias
+  resumenNatural: string
+  resultados: SentenciaResultado[]
   totalEncontrados: number
 }
 
 interface BorradorRequest {
-  descripcionCaso: string             // Hechos del caso
+  descripcionCaso: string
   tipoResolucion: 'sentencia' | 'auto' | 'decreto' | 'resolucion'
-  instrucciones?: string              // Indicaciones adicionales
+  instrucciones?: string
 }
 
 interface BorradorResponse {
-  borrador: string                    // Texto del borrador
+  borrador: string
   sentenciasCitadas: SentenciaReference[]
-  disclaimer: string                  // "Este es un borrador sugerido..."
+  disclaimer: string
 }
 ```
 
 **Responsabilidades**:
-- Interfaz de chat con streaming de respuestas
+- Interfaz de chat con streaming token a token
+- Componente ProgresoAgente (muestra pasos del agente en tiempo real)
 - Buscador con filtros y resultados duales (natural + listado)
 - Editor de borradores con citas interactivas
 - Visor de PDF integrado
 - Autenticación directa con Keycloak (`keycloak-js`)
 
-### Componente 2: Autenticación (Keycloak directo)
+### Componente 2: Autenticación (Keycloak directo, sin Cognito)
 
-**Propósito**: Autenticar los 20-30 usuarios del Poder Judicial usando la infraestructura existente de Keycloak.
+**Propósito**: Autenticar los 20-30 usuarios usando la infraestructura existente de Keycloak.
 
-**Tecnología**: Keycloak directo con `keycloak-js` en frontend + validación JWT en Lambda
+**Tecnología**: Keycloak directo con `keycloak-js` en frontend + Lambda Authorizer custom + validación JWT en AgentCore
 
 **Configuración**:
 ```typescript
@@ -261,128 +210,160 @@ interface AuthConfig {
     realm: 'internals'
     clientId: 'jurisprudencia-ia'   // Client público, PKCE
   }
-  // Sin Cognito — JWT de Keycloak validado directo en Lambda
-  // Backend verifica firma contra JWKS endpoint del realm
+  // Sin Cognito — JWT de Keycloak validado directo
+  // Lambda Authorizer para API Gateway
+  // Middleware Python para AgentCore Runtime
   autorizacion: 'acceso_total_autenticado'  // Todos ven todo
 }
 ```
 
 **Responsabilidades**:
-- Autenticar usuarios con Keycloak existente del Poder Judicial (client `jurisprudencia-ia`)
-- Validar JWT en Lambda contra JWKS endpoint de Keycloak
+- Autenticar usuarios con Keycloak existente del PJM
+- Lambda Authorizer custom valida JWT contra JWKS de Keycloak (cache 300s)
+- Middleware Python en AgentCore valida JWT para requests al agente
 - No se requieren permisos granulares (todos ven todo)
 
-### Componente 3: API Backend (Lambda + API Gateway)
+### Componente 3: Agente IA (Strands SDK + AgentCore Runtime)
 
-**Propósito**: Capa REST/WebSocket que conecta el frontend con Bedrock.
+**Propósito**: Agente experto en jurisprudencia que razona, busca, analiza y compila información de múltiples sentencias.
 
-**Tecnología**: API Gateway HTTP API + Lambda Python 3.12
+**Tecnología**: Strands Agents SDK desplegado en AgentCore Runtime
+
+**Interface (Tools del Agente)**:
+```python
+@tool
+def buscar_sentencias(consulta: str, fuero: str = None, tribunal: str = None,
+                      juez: str = None, fecha_desde: str = None,
+                      fecha_hasta: str = None, materia: str = None,
+                      limite: int = 20) -> dict:
+    """Busca sentencias con búsqueda semántica y filtros de metadata."""
+
+@tool
+def leer_sentencia(sentencia_id: str) -> dict:
+    """Lee el texto completo de una sentencia para análisis detallado."""
+
+@tool
+def compilar_analisis(sentencia_ids: list, enfoque: str,
+                      formato: str = "detallado") -> dict:
+    """Sintetiza múltiples sentencias identificando patrones y evolución."""
+
+@tool
+def comparar_sentencias(sentencia_ids: list,
+                        aspectos: list = None) -> dict:
+    """Compara sentencias identificando coincidencias y diferencias."""
+
+@tool
+def contar_resultados(fuero: str = None, juez: str = None,
+                      materia: str = None, fecha_desde: str = None,
+                      fecha_hasta: str = None) -> dict:
+    """Cuenta sentencias que cumplen filtros sin traer contenido."""
+
+@tool
+def generar_borrador(descripcion_caso: str, tipo_resolucion: str,
+                     precedentes: list = None,
+                     instrucciones: str = None) -> dict:
+    """Genera borrador de resolución judicial basado en precedentes."""
+```
+
+**Responsabilidades**:
+- Razonar sobre consultas y descomponerlas en pasos
+- Invocar tools según necesidad (pattern ReAct)
+- Mantener contexto conversacional via AgentCore Memory
+- Streaming de respuestas y progreso al frontend
+- Citar sentencias reales (nunca inventar)
+- Pedir clarificación si la tarea es ambigua
+
+### Componente 4: API Utilitaria (Lambda + API Gateway)
+
+**Propósito**: Endpoints stateless que no requieren el agente (PDFs, health, metadata).
+
+**Tecnología**: FastAPI + Mangum en Lambda, API Gateway REST API
 
 **Interface**:
 ```typescript
-interface API {
-  // Chat experto - endpoint principal
-  POST /chat: (body: { message: string, sessionId?: string }) => ChatResponse
-  
-  // Buscador semántico
-  POST /buscar: (body: BusquedaRequest) => BusquedaResponse
-  
-  // Generador de borradores
-  POST /generar-borrador: (body: BorradorRequest) => BorradorResponse
-  
-  // Detalle sentencia
+interface APIUtilitaria {
   GET /sentencia/{id}: () => SentenciaDetalle
-  
-  // PDF original
   GET /sentencia/{id}/pdf: () => PresignedUrl
-  
-  // Historial de chat
-  GET /chat/sessions: () => SessionList
-  GET /chat/sessions/{sessionId}: () => ChatHistory
+  GET /health: () => { status: 'ok' }
 }
 ```
 
 **Responsabilidades**:
-- Validar token JWT de Keycloak (verificando firma contra JWKS endpoint)
-- Invocar Bedrock AgentCore para chat y búsqueda (sesiones managed)
-- Generar presigned URLs para acceso a PDFs
-- Logging de todas las consultas
+- Generar presigned URLs para acceso a PDFs (cross-account)
+- Servir metadata de sentencias
+- Health check para monitoreo
 
-### Componente 4: Motor de IA (Bedrock Knowledge Bases + Claude)
+### Componente 5: Motor RAG (Bedrock Knowledge Bases + S3 Vectors)
 
-**Propósito**: RAG que recupera sentencias relevantes y genera respuestas precisas citando fuentes reales.
+**Propósito**: Indexar sentencias y permitir búsqueda semántica con filtrado por metadata.
 
-**Tecnología**: Amazon Bedrock Knowledge Bases + Claude Sonnet 4.6 (on-demand, 1M context window) + Titan Embeddings V2 + Bedrock Guardrails (Contextual Grounding)
+**Tecnología**: Bedrock KB + Titan Embeddings V2 + S3 Vectors + Guardrails
 
 **Configuración**:
 ```typescript
-interface BedrockConfig {
-  knowledgeBase: {
-    dataSource: {
-      type: 'S3'
-      bucketArn: string              // Bucket existente de sentencias
-      inclusionPrefixes: string[]    // Prefijos de PDFs
-      metadataConfiguration: {
-        // Cada PDF tiene un .metadata.json asociado con campos del data lake
-        type: 'METADATA_FILE'        // archivo .metadata.json junto al PDF
-      }
-    }
-    embeddingModel: 'amazon.titan-embed-text-v2:0'  // 1024 dims, español nativo
-    vectorStore: {
-      type: 'S3_VECTORS'
-      vectorBucketArn: string
-      vectorIndexName: string        // índice dentro del vector bucket
-    }
-    chunkingStrategy: {
-      type: 'HIERARCHICAL'           // Mejor para documentos largos
-      parentChunkSize: 1500          // Contexto amplio
-      childChunkSize: 300            // Precisión en retrieval
-      overlapTokens: 60
-    }
+interface KBConfig {
+  dataSource: {
+    type: 'S3'
+    bucketArn: string              // Bucket existente cross-account
+    metadataConfiguration: { type: 'METADATA_FILE' }
   }
-  
-  inferenceModel: {
-    modelId: 'anthropic.claude-sonnet-5-20260630-v1:0'  // Near-Opus, 1M tokens
-    // Pago por uso - sin provisioned throughput para 20-30 usuarios
-    inferenceConfig: {
-      temperature: 0.2               // Baja para precisión
-      maxTokens: 4096
-      topP: 0.9
-    }
-  }
-  
-  guardrails: {
-    // Contextual Grounding Check - detecta alucinaciones automáticamente
-    contextualGroundingCheck: {
-      groundingThreshold: 0.7        // Score mínimo de fundamentación en fuentes
-      relevanceThreshold: 0.5        // Score mínimo de relevancia a la query
-      action: 'BLOCK'                // Bloquea respuestas no fundamentadas
-    }
-    // Restringe al ámbito jurídico
-    topicPolicy: {
-      blockedTopics: ['política_partidaria', 'opiniones_personales', 'temas_no_jurídicos']
-    }
-  }
-
-  agentCore: {
-    // AgentCore Harness (GA) - orquestación managed
-    harness: {
-      enabled: true
-      // Maneja: loop de orquestación, estado entre turnos, 
-      // recuperación de fallos, aislamiento de sesiones
-      sessionManagement: 'MANAGED'   // Elimina necesidad de DynamoDB para sesiones
-      responseStreaming: true         // Streaming token a token nativo
-    }
-    instructions: `Sos un asistente experto en jurisprudencia del Poder Judicial 
-    de Mendoza, Argentina. Respondés en español argentino formal jurídico.
-    SIEMPRE citás las sentencias específicas que sustentan tu respuesta, 
-    incluyendo carátula, tribunal, fecha y expediente cuando estén disponibles.
-    Si no encontrás jurisprudencia relevante, lo decís explícitamente.
-    Nunca inventás sentencias o citas.`
+  embeddingModel: 'amazon.titan-embed-text-v2:0'  // 1024 dims, español nativo
+  vectorStore: { type: 'S3_VECTORS' }
+  chunkingStrategy: {
+    type: 'HIERARCHICAL'
+    parentChunkSize: 1500
+    childChunkSize: 300
+    overlapTokens: 60
   }
 }
 
-// Metadata file asociado a cada PDF (ejemplo: sentencia-001.pdf.metadata.json)
+interface GuardrailConfig {
+  contextualGroundingCheck: {
+    groundingThreshold: 0.7
+    relevanceThreshold: 0.5
+    action: 'BLOCK'
+  }
+  topicPolicy: {
+    blockedTopics: ['política_partidaria', 'opiniones_personales', 'temas_no_jurídicos']
+  }
+}
+```
+
+**Responsabilidades**:
+- Parsear PDFs, chunking jerárquico, embeddings e indexación (automático)
+- Búsqueda semántica con filtrado pre-vectorial por metadata
+- Sync incremental semanal (solo nuevos/modificados)
+
+### Componente 6: Pipeline de Ingesta Semanal
+
+**Propósito**: Mantener la KB actualizada con nuevas sentencias.
+
+**Tecnología**: EventBridge + Lambda + Bedrock KB Sync
+
+**Responsabilidades**:
+- Detectar PDFs nuevos en S3 cada semana
+- Generar archivos `.metadata.json` con datos del data lake
+- Disparar sincronización de KB
+- Reportar fallos sin afectar otros PDFs
+
+## Data Models
+
+### Modelo 1: Sesión de Chat (AgentCore Memory - Managed)
+
+AgentCore Memory gestiona sesiones de forma nativa. No se requiere DynamoDB.
+
+```typescript
+interface ChatSession {
+  sessionId: string              // Generado por AgentCore
+  userId: string                 // sub de Keycloak
+  // Historial y estado gestionado por AgentCore Memory
+}
+```
+
+### Modelo 2: Metadata de Sentencias (archivos .metadata.json en S3)
+
+```typescript
+// Archivo: sentencias/2024/expediente-123.pdf.metadata.json
 interface MetadataFile {
   metadataAttributes: {
     fuero: { value: string, type: 'STRING' }
@@ -396,670 +377,266 @@ interface MetadataFile {
 }
 ```
 
-**Responsabilidades**:
-- Vectorizar y almacenar sentencias automáticamente (Bedrock KB maneja ingesta)
-- Recuperar chunks relevantes por similitud semántica con filtrado por metadata
-- Generar respuestas precisas con Claude Sonnet 4.6 citando sentencias reales
-- Filtrar alucinaciones automáticamente via Guardrails Contextual Grounding
-- Mantener contexto conversacional por sesión (AgentCore Harness managed)
-- Streaming de respuestas token a token para UX inmediata
-- Generar borradores de resoluciones basados en precedentes
-
-### Componente 5: Capa Agéntica (Bedrock Agent + Action Groups)
-
-**Propósito**: Permitir que el usuario delegue tareas complejas multi-paso: "buscame las sentencias del último mes donde opinó el juez X y compilame sus opiniones", "rastreame cómo evolucionó el criterio sobre despido indirecto en los últimos 3 años".
-
-**Tecnología**: Bedrock Agents con Action Groups (tools) + Knowledge Base como fuente de datos
-
-**Relación con la arquitectura existente**: La capa agéntica NO reemplaza nada — se monta encima de la KB y S3 Vectors que ya tenemos. Es una forma más inteligente de usar los mismos datos.
-
-**Diagrama conceptual**:
-```mermaid
-graph TD
-    subgraph "Usuario"
-        TAREA[Tarea en lenguaje natural]
-    end
-
-    subgraph "Bedrock Agent - Orquestador"
-        PLAN[Planificador - descompone la tarea]
-        LOOP[Loop de ejecución multi-paso]
-    end
-
-    subgraph "Action Groups - Tools disponibles"
-        T1[buscar_sentencias - KB con filtros metadata]
-        T2[leer_sentencia_completa - S3 presigned]
-        T3[compilar_analisis - sintetiza múltiples sentencias]
-        T4[comparar_sentencias - análisis contrastivo]
-        T5[contar_resultados - estadísticas rápidas]
-    end
-
-    subgraph "Datos existentes"
-        KB[Knowledge Base + S3 Vectors]
-        S3[S3 - PDFs originales]
-    end
-
-    TAREA --> PLAN
-    PLAN --> LOOP
-    LOOP --> T1 & T2 & T3 & T4 & T5
-    T1 --> KB
-    T2 --> S3
-    T3 --> KB
-    T4 --> KB
-```
-
-**Interface - Action Groups (Tools del Agente)**:
-```typescript
-// Tool 1: Búsqueda filtrada en la Knowledge Base
-interface BuscarSentenciasTool {
-  name: 'buscar_sentencias'
-  description: 'Busca sentencias en la base de jurisprudencia aplicando filtros por metadata y/o búsqueda semántica'
-  parameters: {
-    consulta?: string                    // Búsqueda semántica (texto libre)
-    filtros?: {
-      juez?: string                      // Nombre del juez (parcial o completo)
-      fuero?: string                     // laboral, civil, penal, familia
-      tribunal?: string                  // Suprema Corte, Cámara, Juzgado
-      materia?: string                   // despido, accidente, desalojo...
-      fechaDesde?: string                // ISO date
-      fechaHasta?: string                // ISO date
-      expediente?: string                // Número de expediente
-    }
-    limite?: number                      // Máximo de resultados (default 20)
-  }
-  returns: {
-    sentencias: SentenciaResumen[]
-    totalEncontradas: number
-  }
-}
-
-// Tool 2: Lectura completa de una sentencia
-interface LeerSentenciaCompletaTool {
-  name: 'leer_sentencia_completa'
-  description: 'Obtiene el texto completo de una sentencia específica para análisis detallado'
-  parameters: {
-    sentenciaId: string
-  }
-  returns: {
-    textoCompleto: string
-    metadata: MetadataFile
-  }
-}
-
-// Tool 3: Compilar análisis de múltiples sentencias
-interface CompilarAnalisisTool {
-  name: 'compilar_analisis'
-  description: 'Genera un informe sintetizado a partir de múltiples sentencias, identificando patrones, criterios comunes y evolución doctrinal'
-  parameters: {
-    sentenciaIds: string[]               // IDs de sentencias a analizar
-    enfoque: string                      // Qué aspecto analizar (opiniones, criterio, normas aplicadas)
-    formato?: 'resumen' | 'detallado' | 'comparativo'
-  }
-  returns: {
-    informe: string                      // Análisis compilado en markdown
-    sentenciasAnalizadas: number
-    patronesIdentificados: string[]
-  }
-}
-
-// Tool 4: Comparación contrastiva
-interface CompararSentenciasTool {
-  name: 'comparar_sentencias'
-  description: 'Compara dos o más sentencias identificando coincidencias y diferencias en criterio, normas y resolución'
-  parameters: {
-    sentenciaIds: string[]               // 2-5 sentencias para comparar
-    aspectos?: string[]                  // Qué comparar: criterio, normas, resultado, argumentación
-  }
-  returns: {
-    comparacion: string                  // Análisis comparativo
-    coincidencias: string[]
-    diferencias: string[]
-    sentenciaMasRelevante?: string       // ID de la más relevante según contexto
-  }
-}
-
-// Tool 5: Estadísticas rápidas
-interface ContarResultadosTool {
-  name: 'contar_resultados'
-  description: 'Cuenta sentencias que cumplen ciertos filtros sin traer contenido — útil para dimensionar antes de analizar'
-  parameters: {
-    filtros: {
-      juez?: string
-      fuero?: string
-      tribunal?: string
-      materia?: string
-      fechaDesde?: string
-      fechaHasta?: string
-    }
-  }
-  returns: {
-    total: number
-    distribucionPorFuero?: Record<string, number>
-    distribucionPorAnio?: Record<string, number>
-  }
-}
-```
-
-**Prompt del Agente (actualizado para comportamiento agéntico)**:
-```
-Sos un asistente experto en jurisprudencia del Poder Judicial de Mendoza, Argentina.
-Respondés en español argentino formal jurídico.
-
-CAPACIDADES:
-- Podés buscar sentencias combinando filtros (juez, fuero, fecha, materia, tribunal)
-- Podés leer sentencias completas para análisis profundo
-- Podés compilar informes analizando múltiples sentencias
-- Podés comparar sentencias contrastivamente
-- Podés contar resultados para dimensionar antes de analizar
-
-COMPORTAMIENTO:
-- Cuando te piden una tarea compleja, descomponela en pasos y ejecutalos.
-- Primero dimensioná (contá resultados) para saber si son 5 o 500 sentencias.
-- Si son muchas, preguntale al usuario si quiere acotar los filtros.
-- SIEMPRE citás las sentencias específicas (carátula, tribunal, fecha, expediente).
-- Si no encontrás jurisprudencia relevante, lo decís explícitamente.
-- Nunca inventás sentencias o citas.
-- Al compilar, identificá patrones y evolución del criterio en el tiempo.
-```
-
-**Ejemplo de ejecución multi-paso** (lo que hace el agente internamente):
-
-```
-Usuario: "Compilame las opiniones del Dr. Adaro sobre despido indirecto del último año"
-
-Agente (paso 1): contar_resultados(juez="Adaro", materia="despido indirecto", fechaDesde="2025-07-01")
-→ Resultado: 12 sentencias
-
-Agente (paso 2): buscar_sentencias(juez="Adaro", materia="despido indirecto", fechaDesde="2025-07-01", limite=12)
-→ Resultado: 12 sentencias con resúmenes
-
-Agente (paso 3): leer_sentencia_completa(id) × 3-4 sentencias más relevantes
-→ Resultado: texto completo de las más representativas
-
-Agente (paso 4): compilar_analisis(ids=[...12 ids], enfoque="opiniones y criterio del juez", formato="detallado")
-→ Resultado: Informe compilado
-
-Agente → Usuario: Informe con criterio del Dr. Adaro, evolución temporal, citas específicas
-```
-
-**Endpoint adicional para tareas agénticas**:
-```typescript
-interface TareaEndpoint {
-  // Para tareas que pueden demorar (compilaciones, análisis multi-sentencia)
-  POST /tarea: (body: {
-    instruccion: string          // Tarea en lenguaje natural
-    sessionId?: string           // Continuar conversación existente
-  }) => {
-    tareaId: string
-    estado: 'procesando'
-    estimacion?: string          // "Analizando 12 sentencias, ~30 segundos"
-  }
-
-  // Streaming del progreso (el agente informa qué paso está ejecutando)
-  GET /tarea/{tareaId}/stream: () => ReadableStream  // SSE con progreso + resultado
-
-  // Resultado final (si no se usó streaming)
-  GET /tarea/{tareaId}: () => {
-    estado: 'completada' | 'procesando' | 'error'
-    resultado?: string
-    pasosEjecutados: string[]    // Para transparencia: "Busqué 12 sentencias", "Leí 4 completas"...
-    sentenciasCitadas: SentenciaReference[]
-  }
-}
-```
-
-**Responsabilidades**:
-- Descomponer tareas complejas en pasos ejecutables
-- Combinar búsqueda semántica con filtrado por metadata en una sola operación
-- Iterar sobre resultados para profundizar donde sea necesario
-- Sintetizar/compilar información de múltiples sentencias en un informe coherente
-- Informar al usuario del progreso paso a paso (transparencia)
-- Pedir clarificación si la tarea es ambigua o los resultados son demasiados
-
-### Componente 6: Pipeline de Ingesta Semanal
-
-**Propósito**: Procesar PDFs nuevos que llegan semanalmente al S3 y sincronizar con la Knowledge Base.
-
-**Tecnología**: EventBridge + Step Functions + Lambda + Bedrock KB Sync
-
-**Interface**:
-```typescript
-interface PipelineIngesta {
-  // Trigger semanal o por evento S3
-  trigger: 'EventBridge_schedule' | 'S3_event'
-  
-  pasos: {
-    // 1. Detectar PDFs nuevos desde última ejecución
-    detectarNuevos(): S3Key[]
-    
-    // 2. Generar archivo .metadata.json para cada PDF nuevo
-    // (usando metadatos del data lake)
-    generarMetadataFile(pdfKey: string, metadataDataLake: Record<string, any>): void
-    
-    // 3. Sincronizar data source de Bedrock KB
-    // (Bedrock KB maneja parsing PDF + chunking + embedding automáticamente)
-    syncKnowledgeBase(): SyncJobStatus
-  }
-}
-```
-
-**Responsabilidades**:
-- Detectar PDFs nuevos en S3 cada semana
-- Generar archivos `.metadata.json` asociados a cada PDF (con datos del data lake)
-- Disparar sincronización de Bedrock Knowledge Base
-- Reportar estado de sincronización
-- Bedrock KB se encarga de: parsear PDFs, hacer chunking, generar embeddings, indexar en S3 Vectors
-
-**Nota**: Bedrock Knowledge Bases parsea PDFs directamente desde S3. Los archivos `.metadata.json` permiten filtrado pre-vectorial por fuero, tribunal, materia, fecha, etc.
-
-## Data Models
-
-### Modelo 1: Sesión de Chat (AgentCore Harness - Managed)
-
-AgentCore Harness gestiona sesiones de forma nativa. No se requiere DynamoDB para el historial de chat.
-
-```typescript
-// AgentCore maneja internamente:
-// - Creación/continuación de sesiones
-// - Persistencia de historial entre turnos
-// - Aislamiento de sesiones
-// - Recuperación ante fallos
-// Solo necesitamos el sessionId para referenciar
-
-interface ChatSession {
-  sessionId: string              // Generado por AgentCore
-  userId: string                 // sub de Keycloak
-  // El historial y estado lo gestiona AgentCore Harness
-}
-```
-
-### Modelo 2: Metadata de Sentencias (archivos .metadata.json en S3)
-
-```typescript
-// Archivo: sentencias/2024/expediente-123.pdf.metadata.json
-// Se genera con datos del data lake y se coloca junto al PDF en S3
-interface MetadataFile {
-  metadataAttributes: {
-    fuero: { value: string, type: 'STRING' }        // "laboral", "civil", "penal"
-    tribunal: { value: string, type: 'STRING' }     // "Suprema Corte"
-    materia: { value: string, type: 'STRING' }      // "despido, enfermedad profesional"
-    fechaSentencia: { value: string, type: 'STRING' } // "2024-03-15"
-    caratula: { value: string, type: 'STRING' }     // "García c/ Empresa SA p/ despido"
-    expediente: { value: string, type: 'STRING' }   // "13-04567890-1/1"
-    jueces: { value: string, type: 'STRING' }       // "Adaro, Valerio, Llorente"
-  }
-}
-```
-
-**Uso**: Bedrock Knowledge Bases lee estos archivos automáticamente durante la ingesta. Luego se pueden usar como filtros pre-vectoriales en las queries (ej: "buscar solo en fuero laboral").
-
 ## Correctness Properties
 
-*Una propiedad es una característica o comportamiento que debe mantenerse verdadero en todas las ejecuciones válidas del sistema — esencialmente, una declaración formal sobre lo que el sistema debe hacer. Las propiedades sirven como puente entre especificaciones legibles por humanos y garantías de correctitud verificables por máquinas.*
-
 ### Property 1: Completitud de citas en respuestas
-
-*Para toda* respuesta del Chat Experto donde se encontró jurisprudencia relevante, la respuesta SHALL incluir al menos una referencia con carátula, tribunal, fecha, fragmento relevante y enlace al PDF original en S3.
-
+*Para toda* respuesta del Chat Experto donde se encontró jurisprudencia relevante, la respuesta SHALL incluir al menos una referencia con carátula, tribunal, fecha, fragmento relevante y enlace al PDF original.
 **Validates: Requirements 1.2, 1.4**
 
 ### Property 2: Validez de identificadores de citas
-
-*Para toda* sentencia citada en una respuesta (del Chat Experto o del Generador de Borradores), el identificador de la sentencia SHALL corresponder a un documento real existente e indexado en la Knowledge Base.
-
+*Para toda* sentencia citada, el identificador SHALL corresponder a un documento real existente e indexado en la Knowledge Base.
 **Validates: Requirements 6.3**
 
 ### Property 3: Completitud de resultados de búsqueda
-
-*Para toda* consulta al Buscador Semántico que retorna resultados, la respuesta SHALL contener un resumen en lenguaje natural y un listado donde cada sentencia incluye carátula, tribunal, fecha, fuero y fragmento relevante, ordenadas por relevancia.
-
+*Para toda* consulta al Buscador que retorna resultados, la respuesta SHALL contener un resumen en lenguaje natural y un listado con carátula, tribunal, fecha, fuero y fragmento relevante.
 **Validates: Requirements 2.1, 2.2**
 
-### Property 4: Correctitud de filtros de búsqueda
-
-*Para cualquier* combinación de filtros (fuero, tribunal, fecha, materia) aplicados a una búsqueda, todos los resultados retornados SHALL cumplir con todos los filtros seleccionados.
-
+### Property 4: Correctitud de filtros
+*Para cualquier* combinación de filtros aplicados, todos los resultados retornados SHALL cumplir todos los filtros seleccionados.
 **Validates: Requirements 2.3**
 
-### Property 5: Completitud de respuesta del generador de borradores
-
-*Para todo* borrador generado, la respuesta SHALL incluir las sentencias citadas con datos identificatorios, un disclaimer de borrador sugerido, y el tipo de resolución SHALL ser uno de: sentencia, auto, decreto o resolución.
-
+### Property 5: Completitud del generador de borradores
+*Para todo* borrador generado, SHALL incluir sentencias citadas, disclaimer, y tipo de resolución válido.
 **Validates: Requirements 3.2, 3.3, 3.4**
 
 ### Property 6: Aislamiento de sesiones
-
-*Para cualquier* par de sesiones del mismo usuario, el historial y contexto de una sesión SHALL no influir en las respuestas generadas en la otra sesión.
-
+*Para cualquier* par de sesiones, el historial de una SHALL no influir en las respuestas de la otra.
 **Validates: Requirements 7.5**
 
-### Property 7: Orden cronológico de mensajes
-
-*Para toda* sesión con múltiples mensajes, al recuperar los mensajes estos SHALL estar en orden cronológico de envío.
-
-**Validates: Requirements 7.2**
-
-### Property 8: Completitud de indexación
-
-*Para todo* PDF presente en el bucket S3 que fue procesado exitosamente por el Pipeline de Ingesta, el documento SHALL estar indexado como embeddings en la Knowledge Base.
-
+### Property 7: Completitud de indexación
+*Para todo* PDF procesado exitosamente, SHALL estar indexado como embeddings en la KB.
 **Validates: Requirements 5.3**
 
-### Property 9: Aislamiento de fallos en ingesta
-
-*Para todo* lote de PDFs procesado por el Pipeline de Ingesta, si un PDF falla en el procesamiento, los demás PDFs del lote SHALL ser procesados exitosamente sin verse afectados.
-
-**Validates: Requirements 5.4**
-
-### Property 10: Umbral de relevancia baja
-
-*Para toda* consulta al Chat Experto donde todos los chunks recuperados tienen un score de relevancia menor a 0.3, el sistema SHALL responder indicando que no encontró jurisprudencia específica y sugerir reformular la consulta.
-
-**Validates: Requirements 10.1**
-
-### Property 11: Enforcement de autenticación
-
-*Para todo* request a un endpoint protegido de la API que no incluya un token JWT válido, el Sistema SHALL rechazar la solicitud con un error de autenticación.
-
+### Property 8: Enforcement de autenticación
+*Para todo* request sin JWT válido, el Sistema SHALL rechazar con error de autenticación.
 **Validates: Requirements 4.3**
 
-### Property 12: Lógica de reintentos
-
-*Para toda* invocación fallida a Bedrock, el Sistema SHALL reintentar automáticamente con backoff exponencial hasta un máximo de 3 intentos antes de devolver un error al usuario.
-
-**Validates: Requirements 10.2**
-
-### Property 13: Completitud de auditoría
-
-*Para toda* consulta procesada por el Sistema, SHALL existir un registro en CloudWatch Logs que contenga userId, timestamp y tipo de operación.
-
+### Property 9: Completitud de auditoría
+*Para toda* consulta procesada, SHALL existir un registro con userId, timestamp y tipo de operación.
 **Validates: Requirements 9.3**
 
 ## Error Handling
 
-### Error Scenario 1: Bedrock no encuentra jurisprudencia relevante
+### Error 1: No se encuentra jurisprudencia relevante
+**Condición**: Búsqueda retorna chunks con score < 0.3.
+**Respuesta**: "No encontré jurisprudencia específica. Sugiero reformular la consulta."
+**Recuperación**: Log para análisis de gaps.
 
-**Condición**: La búsqueda semántica retorna chunks con score < 0.3 (baja relevancia).
-**Respuesta**: El sistema responde honestamente: "No encontré jurisprudencia específica sobre este tema en la base de sentencias de Mendoza. Te sugiero reformular la consulta o consultar con un especialista."
-**Recuperación**: Log para análisis de gaps en la base de conocimiento.
+### Error 2: Timeout en Bedrock/AgentCore
+**Condición**: Respuesta no llega en 30 segundos.
+**Respuesta**: "La consulta está tomando más tiempo. Intentá de nuevo."
+**Recuperación**: Retry con backoff. Alarma si tasa > 5%.
 
-### Error Scenario 2: Timeout en Bedrock
+### Error 3: PDF no parseable
+**Condición**: KB no puede procesar un PDF.
+**Respuesta**: Se marca como fallido. No afecta otros.
+**Recuperación**: Notificación al admin.
 
-**Condición**: Claude no responde en 30 segundos.
-**Respuesta**: "La consulta está tomando más tiempo del esperado. Por favor intentá de nuevo."
-**Recuperación**: Retry automático con backoff. Alarma si tasa > 5%.
-
-### Error Scenario 3: PDF no parseable en ingesta
-
-**Condición**: Bedrock KB no puede procesar un PDF durante sincronización.
-**Respuesta**: Se marca como fallido en el reporte de sincronización. No afecta a otros PDFs.
-**Recuperación**: Notificación al admin. Reproceso manual si es necesario.
-
-### Error Scenario 4: Keycloak no disponible
-
-**Condición**: El IdP del Poder Judicial no responde.
-**Respuesta**: Página de error amigable indicando problema de autenticación.
-**Recuperación**: El frontend usa refresh tokens de Keycloak — si el token no puede renovarse, redirige al login.
-
-## Testing Strategy
-
-### Unit Testing
-
-- Testear Lambdas con mocks de Bedrock (respuestas simuladas)
-- Validar formato de respuestas y manejo de errores
-- Testear integración con AgentCore sessions
-
-### Integration Testing
-
-- Test end-to-end: pregunta → respuesta con citas reales
-- Validar que las citas corresponden a sentencias reales en S3
-- Test de búsqueda: verificar relevancia de resultados con queries conocidas
-- Test de borradores: verificar que no inventa jurisprudencia
-
-### Acceptance Testing (con usuarios reales)
-
-- 5 jueces/letrados prueban el chat con preguntas reales de su práctica
-- Validan precisión de citas y relevancia de respuestas
-- Prueban generador de borradores con casos reales
+### Error 4: Keycloak no disponible
+**Condición**: IdP no responde.
+**Respuesta**: Página de error indicando problema de autenticación.
+**Recuperación**: Frontend usa refresh tokens; si falla, redirige a login.
 
 ## Performance Considerations
 
 ### Latencia objetivo
 
-| Funcionalidad | Latencia P95 | Nota |
-|---------------|-------------|------|
-| Chat primera respuesta | < 5s | Streaming reduce percepción |
-| Búsqueda semántica | < 4s | Incluye resumen natural |
-| Generación de borrador | < 15s | Aceptable para el caso de uso |
+| Funcionalidad | Latencia P95 |
+|---|---|
+| Chat primera respuesta (streaming) | < 3s |
+| Búsqueda semántica | < 4s |
+| Generación de borrador | < 15s |
+| Tarea agéntica multi-paso | < 60s (con streaming de progreso) |
 
-### Costos estimados mensuales (Fase 1 - 20-30 usuarios)
+### Costos estimados mensuales (20-30 usuarios)
 
-| Servicio | Estimación | Supuesto |
-|----------|-----------|----------|
-| Bedrock Claude Sonnet 4.6 (inferencia) | $80-150/mes | ~500 consultas/día, ~2K tokens promedio |
-| Bedrock Titan Embeddings V2 | $5-10/mes | Ingesta semanal + re-sync |
-| S3 Vectors (storage + queries) | $5-15/mes | 27K docs, ~100K vectors, consultas moderadas |
-| Lambda | $5/mes | Bajo volumen de requests |
-| API Gateway | $3/mes | HTTP API, bajo volumen |
-| Amplify Hosting | $5/mes | SSR bajo tráfico |
-| S3 (ya existente) | $0 | Ya lo tienen |
-| Bedrock Guardrails | $0.75/1000 eval | Incluido en costo inferencia |
-| **Total estimado Fase 1** | **$105-190/mes** | |
-
-### Costos adicionales Fase 2 (Fine Tuning)
-
-| Concepto | Costo único | Costo mensual |
-|----------|-------------|---------------|
-| Entrenamiento SageMaker (ml.g5.12xlarge, ~24h) | $500-800 | - |
-| Bedrock Custom Model (provisioned) | - | $200-500/mes |
-| Preparación dataset (Lambda) | $5 | - |
-| **Total adicional Fase 2** | **~$700 setup** | **+$200-500/mes** |
+| Servicio | Estimación |
+|---|---|
+| Bedrock Claude Sonnet 5 (inferencia) | $80-150/mes |
+| Bedrock Titan Embeddings V2 | $5-10/mes |
+| S3 Vectors (storage + queries) | $5-15/mes |
+| AgentCore Runtime | $20-50/mes |
+| Lambda (utilitarios) | $5/mes |
+| API Gateway | $3/mes |
+| Amplify Hosting | $5/mes |
+| Bedrock Guardrails | ~$5/mes |
+| **Total estimado** | **$130-245/mes** |
 
 ### S3 Vectors como vector store
-
-S3 Vectors es la elección natural para este proyecto:
-- Los PDFs ya están en S3 → los vectores quedan en el mismo ecosistema
-- Integración nativa con Bedrock Knowledge Bases (se selecciona como vector store al crear el KB)
-- Costo ~90% menor que OpenSearch Serverless para nuestro volumen (27K docs, 20-30 usuarios)
-- Sin infraestructura que provisionar ni OCUs mínimos
-- GA desde diciembre 2025, disponible en múltiples regiones
-- Latencia ~100ms para queries frecuentes — más que suficiente para nuestro caso de uso
-- Escala hasta 2 billones de vectores por índice (muy por encima de lo que necesitamos)
+- PDFs ya en S3 → vectores en mismo ecosistema
+- Integración nativa con Bedrock KB
+- ~90% más barato que OpenSearch Serverless para este volumen
+- Sin OCUs mínimos, sin infra que provisionar
+- Latencia ~100ms para queries — suficiente para el caso de uso
 
 ## Security Considerations
 
 ### Modelo de acceso simplificado
-
-- **Autenticación**: Keycloak del Poder Judicial directo (`keycloak-js` + JWT validation en Lambda)
-- **Autorización**: Binaria — autenticado = acceso total. Todos ven todo.
+- **Autenticación**: Keycloak directo (`keycloak-js` + Lambda Authorizer + middleware Python)
+- **Autorización**: Binaria — autenticado = acceso total
 - **Cifrado**: TLS 1.3 en tránsito, SSE-S3/KMS en reposo
 - **Auditoría**: CloudWatch Logs con userId en cada consulta
-- **Guardrails de Bedrock**: Restringir respuestas al ámbito jurídico
-
-### Sin permisos granulares por fuero
-
-Decisión explícita del proyecto: los 20-30 usuarios autorizados tienen acceso a todas las sentencias de todos los fueros. Esto simplifica enormemente la arquitectura (no se necesitan filtros por usuario).
+- **Guardrails de Bedrock**: Respuestas restringidas al ámbito jurídico
+- **Sin Cognito**: Se eliminó el intermediario innecesario
 
 ## Dependencies
 
-### Servicios AWS (Fase 1)
+### Servicios AWS
 
 | Servicio | Propósito |
-|----------|-----------|
-| Amazon Bedrock (Knowledge Bases) | RAG automático sobre PDFs en S3 |
-| Amazon Bedrock (Claude Sonnet 4.6) | LLM para respuestas - on demand |
+|---|---|
+| Amazon Bedrock (Knowledge Bases) | RAG automático sobre PDFs |
+| Amazon Bedrock (Claude Sonnet 5) | LLM - on demand |
 | Amazon Bedrock (Titan Embeddings V2) | Embeddings en español |
-| Amazon S3 Vectors | Vector store para KB (nativo) |
-| Amazon Bedrock AgentCore Harness | Orquestación + sesiones managed |
-| Amazon Bedrock Guardrails | Anti-alucinación (Contextual Grounding) |
-| AWS Lambda (Python 3.12) | Backend API |
-| Amazon API Gateway (HTTP API) | REST endpoints |
-| AWS Amplify Hosting | Frontend React SPA |
+| Amazon S3 Vectors | Vector store nativo |
+| Amazon Bedrock AgentCore Runtime | Deploy managed del agente Strands |
+| Amazon Bedrock AgentCore Memory | Sesiones persistentes |
+| Amazon Bedrock Guardrails | Anti-alucinación |
+| AWS Lambda (Python 3.12) | API utilitaria |
+| Amazon API Gateway (REST) | Endpoints + streaming |
+| AWS Amplify Hosting | Frontend SPA |
 | Amazon S3 (existente) | PDFs de sentencias |
-| Amazon CloudWatch | Logs y métricas |
+| Amazon EventBridge | Trigger ingesta semanal |
+| Amazon CloudWatch | Logs, métricas, alarmas |
 
-### Servicios adicionales (Fase 2)
+### Librerías Python principales
 
-| Servicio | Propósito |
-|----------|-----------|
-| Amazon SageMaker | Fine Tuning del modelo |
-| Bedrock Custom Model Import | Deploy del modelo entrenado |
+| Librería | Propósito |
+|---|---|
+| `strands-agents` | SDK del agente |
+| `strands-agents-tools` | Tools vended (KB, etc.) |
+| `boto3` | AWS SDK |
+| `fastapi` + `mangum` | API utilitaria en Lambda |
+| `python-jose[cryptography]` | Validación JWT Keycloak |
+| `httpx` | HTTP async (JWKS) |
+| `pydantic` v2 | Schemas y validación |
 
 ### Frontend
 
-- React 18+ (Vite como bundler)
-- TailwindCSS
-- React Router (routing client-side)
-- Componente de chat (streaming)
-- Visor de PDF (react-pdf o iframe con presigned URL)
+| Librería | Propósito |
+|---|---|
+| React 18+ (Vite) | Framework UI |
+| TailwindCSS | Estilos |
+| react-router-dom v6 | Routing |
+| keycloak-js | Auth directa |
+| react-pdf / iframe | Visor PDF |
+| react-markdown | Render respuestas |
 
 ## Decisiones de Diseño
 
-### Modelo: Claude Sonnet 5 para Fase 1
-
-- El modelo Sonnet más capaz de Anthropic (lanzado 30 junio 2026)
-- Inteligencia near-Opus con el balance costo/velocidad de Sonnet
-- Excelente para agentes, trabajo profesional y coding a escala
-- Mejor modelo disponible en Bedrock para español argentino
-- Ventana de contexto de 1M tokens — puede procesar múltiples sentencias largas
-- Pago por uso (on-demand) — sin costo fijo
-- No necesita fine tuning para entender consultas jurídicas complejas
-
-### Bedrock Knowledge Bases (managed RAG)
-
-- Setup mínimo: apuntás al S3, configuras chunking, y funciona
-- Maneja parsing de PDF, chunking, embeddings e indexación automáticamente
-- Sync incremental: solo procesa documentos nuevos/modificados
-- Reduce semanas de desarrollo custom a horas de configuración
+### Strands Agents SDK + AgentCore Runtime (reemplaza Bedrock Agents Classic)
+- Bedrock Agents Classic deja de aceptar nuevos clientes el 30 julio 2026
+- Strands es open source, testeable localmente, con tools como funciones Python
+- AgentCore Runtime provee deploy managed con scaling, sessions, streaming
+- Mismo poder agéntico, más control y mejor developer experience
+- El agente ya incluye las capacidades de "Fase 2 agéntica" desde el inicio
 
 ### Keycloak directo (sin Cognito)
+- Los usuarios ya existen en Keycloak del PJM
+- Notifica y otros sistemas usan la misma estrategia
+- Un servicio menos = menos complejidad y costo
+- Lambda Authorizer custom cachea validación (300s TTL)
+- Se pierde JWT authorizer nativo de API Gateway — impacto mínimo
 
-- Los usuarios ya existen en Keycloak del Poder Judicial
-- No se duplican credenciales ni se agrega un intermediario
-- El frontend usa `keycloak-js` (misma lib que Notifica)
-- El backend valida JWT contra el JWKS endpoint de Keycloak directamente
-- Se pierde el JWT authorizer nativo de API Gateway (se valida en Lambda, trivial)
-- Se gana: un servicio menos, un componente menos, flujo más simple
+### API Gateway REST con Response Streaming
+- Soporta streaming desde Lambda proxy (transferMode: STREAM)
+- Timeout extendido hasta 15 minutos (no el límite de 29s)
+- El frontend lee chunks con fetch + ReadableStream
+- No se necesitan WebSockets ni Function URLs
 
-### Capa Agéntica como evolución natural (Fase 2)
+### Arquitectura híbrida (AgentCore + Lambda)
+- El agente corre en AgentCore Runtime (chat, tareas complejas, borradores)
+- Endpoints utilitarios en Lambda (presigned URLs, health) — más simples y baratos
+- Cada componente usa el runtime apropiado a su naturaleza
 
-- El chat de Fase 1 ya usa Bedrock Agents para orquestar RAG — la diferencia en Fase 2 es darle **tools** (Action Groups) para que pueda hacer tareas multi-paso
-- No es un sistema separado: es el mismo agente con más capacidades
-- El usuario interactúa igual (chat en lenguaje natural) pero puede pedir cosas más complejas
-- Las tools usan los mismos datos (KB + S3 Vectors) — no se agrega infraestructura nueva
-- El agente decide cuándo necesita filtrar, cuándo leer completa una sentencia, cuándo sintetizar
-- La transparencia es clave: el usuario ve qué pasos está ejecutando el agente (genera confianza en jueces)
-- Tareas largas se procesan con streaming de progreso (SSE) para que el usuario no sienta que "se colgó"
+### Sin Neptune/Grafos en Fases 1-2
+- Grafos son "nice to have" — no core
+- Se pueden agregar después si hay demanda real
+- La comparación y relaciones se resuelven con tools del agente
 
-### Sin Neptune/Grafos en Fase 1
+### Sin Fine Tuning en Fases 1-2
+- Claude Sonnet 5 con RAG da precisión excelente sin FT
+- FT agrega valor en redacción con "estilo judicial" y conocimiento conceptual
+- Se difiere a Fase 3 (6-8 semanas adicionales de trabajo)
+- Para la demo, RAG puro es suficiente
 
-- Los grafos de relaciones son "nice to have" pero no core
-- La prioridad es chat preciso + búsqueda semántica + borradores
-- Se pueden agregar en una Fase 3 si hay demanda
+### IaC con SAM (no CDK)
+- Proyecto pequeño (2-3 Lambdas + API Gateway)
+- SAM es más simple, YAML declarativo
+- `sam local invoke` para testing local
+- CDK sería overkill para este volumen
 
-### pypdf eliminado del pipeline principal
-
-- Bedrock Knowledge Bases parsea PDFs directamente desde S3
-- No necesitamos extracción manual de texto
-- El pipeline se reduce a: S3 → Bedrock KB Sync → Listo
-
-### ¿Por qué NO fine tuning en Fase 1?
-
-- Claude Sonnet 4.6 con RAG ya da respuestas precisas citando sentencias reales
-- El fine tuning agrega valor en conocimiento conceptual profundo y redacción de borradores con "estilo judicial"
-- Pero requiere 6-8 semanas más de trabajo (preparar dataset, entrenar, evaluar)
-- Para una demo que impresione en semanas, RAG puro es suficiente y ya da efecto wow
-
-### AgentCore Harness (orquestación managed)
-
-- Recién GA (junio 2026) — maneja el loop de orquestación, estado entre turnos, recuperación de fallos y aislamiento de sesiones
-- Elimina la necesidad de DynamoDB para gestionar sesiones de chat manualmente
-- Streaming de respuestas nativo (token a token) sin implementación custom
-- Reduce código backend significativamente — nos enfocamos en el prompt y la lógica de negocio
-- Para 20-30 usuarios es ideal: no necesitamos escalar infraestructura de sesiones
-
-### Bedrock Guardrails con Contextual Grounding
-
-- Detecta automáticamente cuando una respuesta NO está fundamentada en los chunks del RAG
-- Filtra alucinaciones antes de llegar al usuario — crítico para confianza de jueces
-- Configurable con umbral de grounding (0.7) y relevancia (0.5)
-- Si la respuesta no pasa el check, se bloquea y se informa al usuario honestamente
-- Costo mínimo adicional (~$0.75/1000 evaluaciones)
-
-### Metadata Filtering con archivos .metadata.json
-
-- Cada PDF en S3 tiene un archivo `.metadata.json` asociado con campos del data lake
-- Bedrock KB los ingesta automáticamente junto con el PDF
-- Permite filtrado PRE-vectorial: antes de buscar por similitud semántica, filtra por fuero/tribunal/fecha/materia
-- Mejora la precisión de los filtros del buscador sin lógica custom
-- Los campos se obtienen de la base del data lake (a solicitar al administrador)
-
-### Streaming de respuestas
-
-- Las respuestas se envían token a token al frontend vía `InvokeAgentWithResponseStream`
-- El usuario ve la respuesta formándose en tiempo real — efecto wow inmediato
-- Reduce la percepción de latencia significativamente (aunque la respuesta total tarde 5s, el primer token llega en <1s)
-- Implementación nativa en AgentCore, sin WebSockets custom
-
-### Estrategia de precisión (lo que más impresiona)
-
-- Temperature baja (0.2) para respuestas factuales
-- Prompt del agente instruido a SIEMPRE citar fuentes
-- Si no encuentra jurisprudencia, lo dice en vez de inventar
-- Hierarchical chunking para mejor retrieval de documentos largos
-- Cada respuesta incluye links a los PDFs originales para verificación
+### Metadata Filtering con .metadata.json
+- Cada PDF tiene archivo .metadata.json con campos del data lake
+- Bedrock KB los ingesta automáticamente
+- Permite filtrado PRE-vectorial (fuero, tribunal, fecha, juez, materia)
+- Los campos se obtienen de la base del data lake existente
 
 ## Fases de Desarrollo
 
-### Fase 1: MVP con RAG (Semanas 1-3)
+### Fase 1: MVP con Agente Strands (Semanas 1-4)
 
 **Semana 1**:
-- Configurar Bedrock Knowledge Base apuntando al S3 existente
-- Configurar Keycloak client `jurisprudencia-ia` en realm `internals`
-- Crear Lambda + API Gateway base
-- Scaffold del frontend en Amplify
+- Configurar Bedrock KB apuntando al S3 existente
+- Configurar S3 Vectors como vector store
+- Ejecutar sync inicial, testear retrieval
+- Configurar Keycloak client `jurisprudencia-ia`
 
 **Semana 2**:
-- Implementar chat con streaming
-- Implementar buscador semántico
-- Conectar frontend con backend
-- Testing con sentencias reales
+- Implementar agente Strands con tools básicos (buscar, leer, contar)
+- Testing local del agente (sin deploy)
+- Crear Lambda Authorizer custom
+- Scaffold del frontend en Amplify
 
 **Semana 3**:
-- Generador de borradores (básico)
-- Pulir UX
-- Testing con usuarios reales (2-3 jueces)
-- Deploy en Amplify → Demo a gerencia
-
-### Fase 2: Comportamiento Agéntico (Semanas 4-6)
-
-**Objetivo**: Permitir que el usuario le delegue tareas complejas multi-paso al sistema (compilar, comparar, sintetizar información de múltiples sentencias con filtros combinados).
+- Deployar agente en AgentCore Runtime
+- Implementar streaming frontend ↔ agente
+- Implementar chat con progreso del agente visible
+- Implementar buscador semántico con filtros
 
 **Semana 4**:
-- Definir Action Groups del agente (tools disponibles)
-- Implementar tool `buscar_sentencias` con filtros combinados por metadata
-- Implementar tool `leer_sentencia_completa`
-- Ajustar prompt del agente para orquestación multi-paso
+- Agregar tools: compilar_analisis, comparar_sentencias
+- Implementar generador de borradores (como tool)
+- Testing con usuarios reales (2-3 jueces)
+- Pulir UX → Demo a gerencia
 
-**Semana 5**:
-- Implementar tool `compilar_analisis` (síntesis de múltiples sentencias)
-- Implementar tool `comparar_sentencias` (análisis contrastivo)
-- Endpoint `POST /tarea` para tareas de larga duración
-- Notificación al frontend cuando la tarea termina (Pusher o polling)
+### Fase 2: UX Avanzada (Semanas 5-7)
 
-**Semana 6**:
-- UX de tareas: el usuario ve progreso paso a paso
-- Testing con tareas reales (compilar opiniones, rastrear evolución de criterio)
-- Ajuste de prompts según feedback de usuarios
+- Visor de PDF integrado
+- Historial de sesiones
+- Exportar/copiar borradores
+- Refinamiento de prompts según feedback
+- Pipeline de ingesta semanal
+- Monitoreo y alarmas CloudWatch
 
-### Fase 3: Fine Tuning (Semanas 7-12)
+### Fase 3: Fine Tuning (Semanas 8-15)
 
-**Semanas 7-8**: Preparar dataset de entrenamiento
-**Semanas 9-10**: Entrenar modelo en SageMaker
-**Semanas 11-12**: Evaluar y ajustar + Deploy como Custom Model en Bedrock
+- Preparar dataset de entrenamiento
+- Entrenar modelo en SageMaker
+- Evaluar y ajustar
+- Deploy como Custom Model en Bedrock
+- El agente usa FT para redacción + RAG para datos frescos
 
-### Fase 4 (futura, opcional): Grafos y visualización
+## Testing Strategy
 
-- Amazon Neptune para relaciones entre sentencias
-- Explorador visual con grafos
-- Línea de tiempo
-- Comparación lado a lado
+### Unit Testing (Agente)
+- Testear cada tool individualmente con mocks de Bedrock KB
+- Verificar formato de respuestas, manejo de errores, filtrado correcto
+- Testear system prompt: el agente cita fuentes, no alucina, pide clarificación
+
+### Integration Testing
+- Agente contra KB real: pregunta → respuesta con citas verificables
+- Validar que citas corresponden a sentencias reales en S3
+- Test de búsqueda con filtros: verificar que resultados respetan todos los filtros
+- Test de borradores: verificar disclaimer, tipo válido, citas reales
+
+### Acceptance Testing (con usuarios)
+- 3-5 jueces/letrados prueban con preguntas reales de su práctica
+- Validan precisión de citas y relevancia de respuestas
+- Prueban generador con casos reales
+- Prueban tareas multi-paso (compilar criterios, comparar sentencias)
+
+### Local Testing (ventaja de Strands)
+- El agente se puede correr 100% local con `python -m agente.agente_jurisprudencia`
+- Solo requiere credenciales AWS para invocar Bedrock y KB
+- No necesita deploy para iterar sobre prompts y tools

@@ -60,9 +60,9 @@ Sistema de búsqueda semántica y asistente experto en jurisprudencia para el Po
 
 #### Criterios de Aceptación
 
-1. WHEN un usuario accede al Sistema, THE Sistema SHALL redirigir la autenticación a Keycloak del Poder Judicial mediante federación OIDC a través de Cognito
+1. WHEN un usuario accede al Sistema, THE Sistema SHALL redirigir la autenticación directamente a Keycloak del Poder Judicial (realm `internals`) usando `keycloak-js` con flujo PKCE
 2. WHEN un usuario se autentica exitosamente, THE Sistema SHALL otorgar acceso a todas las funcionalidades y todas las sentencias sin restricción por fuero
-3. IF un usuario no autenticado intenta acceder a un endpoint protegido, THEN THE Sistema SHALL rechazar la solicitud y redirigir al flujo de autenticación
+3. IF un usuario no autenticado intenta acceder a un endpoint protegido, THEN THE Sistema SHALL rechazar la solicitud con error 401 (Lambda Authorizer valida JWT contra JWKS de Keycloak)
 4. IF el proveedor Keycloak no está disponible, THEN THE Sistema SHALL mostrar un mensaje de error amigable y permitir el acceso a sesiones existentes con tokens de refresco válidos
 
 ### Requisito 5: Pipeline de ingesta semanal
@@ -94,7 +94,7 @@ Sistema de búsqueda semántica y asistente experto en jurisprudencia para el Po
 
 #### Criterios de Aceptación
 
-1. WHEN un usuario inicia una conversación, THE Sistema SHALL crear una sesión con un identificador único y almacenarla en DynamoDB
+1. WHEN un usuario inicia una conversación, THE Sistema SHALL crear una sesión con un identificador único gestionada por AgentCore Memory
 2. WHEN un usuario envía un mensaje en una sesión existente, THE Sistema SHALL asociar el mensaje a la sesión correspondiente preservando el orden cronológico
 3. WHEN un usuario consulta su historial, THE Sistema SHALL retornar la lista de sesiones previas del usuario con título y fecha de última actividad
 4. THE Sistema SHALL mantener las sesiones de chat durante 30 días desde la última actividad, eliminándolas automáticamente tras ese período
