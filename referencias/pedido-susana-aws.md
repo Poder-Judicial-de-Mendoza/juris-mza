@@ -1,6 +1,6 @@
 # Pedido para Susana — Cuenta AWS + Accesos
 
-Susana, necesito que me prepares una cuenta AWS y algunos accesos para el proyecto de Jurisprudencia con IA. Son 4 cosas puntuales.
+Susana, necesito que me prepares una cuenta AWS y algunos accesos para el proyecto de Jurisprudencia con IA. Son 5 cosas puntuales.
 
 ---
 
@@ -13,9 +13,38 @@ Crear una cuenta nueva en la organización:
 
 ---
 
-## 2. Crear el usuario IAM `kiro`
+## 2. Darle acceso admin a mi usuario `mryan`
 
-Dentro de la cuenta `jurisprudencia-ia`, crear un usuario con acceso programático (access key + secret key). Es el usuario que voy a usar desde mi máquina para desplegar toda la infraestructura.
+Mi usuario de la organización (`mryan`) necesita permisos de administrador en la cuenta nueva:
+
+```bash
+# Si la org usa IAM Identity Center (SSO), asignar mryan a la cuenta jurisprudencia-ia
+# con el permission set AdministratorAccess.
+
+# Si la org usa IAM directo con cross-account roles, crear un rol que mryan pueda asumir:
+aws iam create-role \
+  --role-name AdminMryan \
+  --assume-role-policy-document '{
+    "Version": "2012-10-17",
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::CUENTA_ORGANIZACION:user/mryan" },
+      "Action": "sts:AssumeRole"
+    }]
+  }'
+
+aws iam attach-role-policy \
+  --role-name AdminMryan \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+```
+
+> Lo importante es que `mryan` pueda operar como admin en la cuenta `jurisprudencia-ia` (crear recursos, ver la consola, etc.). Usá el mecanismo que ya usen en la org (SSO, switch role, etc.).
+
+---
+
+## 3. Crear el usuario IAM `kiro`
+
+Dentro de la cuenta `jurisprudencia-ia`, crear un usuario con acceso programático (access key + secret key). Es el usuario que voy a usar desde AWS CLI para desplegar toda la infraestructura.
 
 ```bash
 # Ejecutar con credenciales de admin de la cuenta jurisprudencia-ia
@@ -128,7 +157,7 @@ aws iam attach-user-policy \
 
 ---
 
-## 3. Darme acceso de lectura al bucket S3 de sentencias
+## 4. Darme acceso de lectura al bucket S3 de sentencias
 
 Los PDFs de las sentencias están en un bucket del data lake (otra cuenta). Necesito que la cuenta `jurisprudencia-ia` pueda leerlos.
 
@@ -166,7 +195,7 @@ aws s3api put-bucket-policy \
 
 ---
 
-## 4. Metadata de las sentencias (probablemente Athena)
+## 5. Metadata de las sentencias (probablemente Athena)
 
 Necesito acceso de lectura a la metadata de las sentencias. Los campos que uso son:
 
@@ -224,9 +253,10 @@ Preguntale a Kiro (tu asistente de código): *"Tengo un data lake en AWS con PDF
 | # | Qué | Tiempo estimado |
 |---|---|---|
 | 1 | Crear cuenta `jurisprudencia-ia` | 5 min |
-| 2 | Crear usuario `kiro` + darle permisos | 5 min |
-| 3 | Bucket policy para lectura de PDFs | 10 min |
-| 4 | Pasarme metadata (CSV) o darme acceso a Athena | 15-30 min |
+| 2 | Darle admin a `mryan` en la cuenta nueva | 5 min |
+| 3 | Crear usuario `kiro` + darle permisos | 5 min |
+| 4 | Bucket policy para lectura de PDFs | 10 min |
+| 5 | Pasarme metadata (CSV) o darme acceso a Athena | 15-30 min |
 
 Una vez que me pases las credenciales del usuario `kiro` y la metadata, yo me encargo del resto.
 
