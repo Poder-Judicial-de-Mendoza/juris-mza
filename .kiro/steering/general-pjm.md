@@ -17,6 +17,16 @@
 - Usar **CUIL** (no CUIT) para identificación de personas.
 - Español de Argentina en la interfaz y respuestas del modelo de IA.
 
+## Fuentes de Datos de Jurisprudencia
+- **Data Lake S3**: PDFs completos de todas las sentencias (fuente primaria para la KB)
+- **SIJ (Servicio de Información Jurídica)**: Sistema legacy con sumarios y voces curadas por humanos
+  - URL: https://wwwjuri.jus.mendoza.gov.ar/jurisprudencia/consultar/index.php
+  - Portal: https://jusmendoza.gob.ar/biblioteca-judicial/jurisprudencia/
+  - Contiene: sumarios (pautas SAIJ), voces (tesauro controlado), metadata estructurada
+  - Es un **subconjunto enriquecido** de las sentencias del data lake
+  - Contacto técnico: Ing. Amira Eluani (Informática Documental)
+  - Documentación completa: `referencias/fuentes-jurisprudencia-curada.md`
+
 ## Infraestructura
 - **Cloud**: AWS (cuenta dedicada `jurisprudencia-ia-mendoza`)
 - **Autenticación**: Keycloak del PJM (realm `internals`) directo con `keycloak-js`

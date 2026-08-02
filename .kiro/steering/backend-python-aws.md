@@ -152,6 +152,43 @@ AGENTCORE_ENDPOINT=xxx
 MODEL_ID=us.anthropic.claude-sonnet-4-20250514
 ```
 
+## Fuentes de Datos
+
+El sistema tiene **dos fuentes principales** de sentencias:
+
+### 1. Data Lake S3 (sentencias completas)
+- Bucket cross-account con PDFs de todas las sentencias
+- Es la fuente primaria para la Knowledge Base
+- Acceso vía presigned URLs para visualización
+
+### 2. SIJ — Servicio de Información Jurídica (jurisprudencia curada)
+- **URL pública**: https://wwwjuri.jus.mendoza.gov.ar/jurisprudencia/consultar/index.php
+- **Portal institucional**: https://jusmendoza.gob.ar/biblioteca-judicial/jurisprudencia/
+- **Contacto técnico**: Ing. Amira Eluani (`aeluani@jus.mendoza.gov.ar`)
+- Contiene un **subconjunto curado** de las sentencias del data lake con:
+  - **Sumarios** redactados por profesionales (pautas SAIJ)
+  - **Voces** de un vocabulario controlado (tesauro)
+  - Metadata estructurada: tribunal, expediente, carátula, magistrados, fecha
+- **Tesauro oficial**: http://www.jus.mendoza.gov.ar/jurisprudencia/tesauro/tesauro.php
+- **Pautas de sumarización**: https://www2.jus.mendoza.gov.ar/corte2/interno/pautas.php
+
+### Relación entre fuentes
+
+```
+Data Lake S3 (PDFs completos, ~todas las sentencias)
+    │
+    ├── Knowledge Base (chunks + embeddings + metadata)
+    │       ▲
+    │       │ enriquece con voces y sumarios
+    │       │
+    └── SIJ (subconjunto curado con sumarios + voces)
+```
+
+- Las voces y sumarios del SIJ se usan para **enriquecer la metadata** de la KB
+- Los sumarios del SIJ son el **gold standard** para validar la generación automática (caso de uso #11)
+- El agente debe usar el **tesauro del SIJ** al asignar voces a sumarios nuevos
+- Documentación completa: `referencias/fuentes-jurisprudencia-curada.md`
+
 ## Logging y Auditoría
 - Registrar en cada request: `usuario_id`, `timestamp`, `tipo_operacion`, `duracion_ms`
 - Usar logging estructurado (JSON) compatible con CloudWatch

@@ -9,6 +9,7 @@ Sistema de búsqueda semántica y asistente experto en jurisprudencia para el Po
 2. Buscador semántico de sentencias (resultados como listado + respuesta en lenguaje natural)
 3. Generador de borradores de resoluciones
 4. Tareas agénticas multi-paso (compilar criterios, comparar sentencias, rastrear evolución)
+5. Generador de sumarios jurisprudenciales (extrae doctrinas, asigna voces SAIJ, identifica votaciones)
 
 **Contexto técnico**:
 - ~27,000 sentencias en PDF (texto embebido) ya en S3, actualizadas semanalmente
@@ -39,7 +40,7 @@ graph TD
 
     subgraph "Agente IA - AgentCore Runtime"
         STRANDS[Strands Agent - Python]
-        TOOLS[Tools: buscar, leer, compilar, comparar, contar, borrador]
+        TOOLS[Tools: buscar, leer, compilar, comparar, contar, borrador, sumarios]
         MEMORY[AgentCore Memory - sesiones]
     end
 
@@ -84,6 +85,10 @@ graph LR
     EVENT --> LAMBDA_META[Lambda - Generar .metadata.json]
     LAMBDA_META --> KB_SYNC[Bedrock KB - Sync Data Source]
     KB_SYNC --> S3V[S3 Vectors - Índice actualizado]
+    LAMBDA_META --> LAMBDA_SUM[Lambda - Trigger generación sumarios]
+    LAMBDA_SUM --> STRANDS_BATCH[Strands Agent - generar_sumarios por cada PDF]
+    STRANDS_BATCH --> DB_SUM[Base de sumarios - estado: borrador_ia]
+    DB_SUM --> PORTAL_REV[Portal - Cola de revisión para Cintia/equipo]
 ```
 
 ### Flujo: Chat Experto (Caso Principal)
@@ -126,6 +131,30 @@ sequenceDiagram
     AG->>AG: Step 4: compilar_analisis(ids=[...], enfoque="criterio del juez")
     AG-->>P: Stream: Informe compilado con citas
     P-->>U: Informe completo con transparencia de pasos
+```
+
+### Flujo: Generación de Sumarios Jurisprudenciales
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant P as Portal
+    participant AG as Strands Agent
+    participant S3 as S3 PDFs
+
+    U->>P: "Generame los sumarios de la sentencia 106321676"
+    P->>AG: generar_sumarios(sentencia_id="106321676")
+    AG->>AG: Step 1: leer_sentencia(id="106321676") - texto completo
+    AG->>S3: Obtener PDF completo
+    S3-->>AG: Texto de la sentencia
+    AG-->>P: Stream: "📖 Leyendo sentencia completa..."
+    AG->>AG: Step 2: Identificar doctrinas/temas tratados
+    AG-->>P: Stream: "🔍 Identifiqué 3 doctrinas..."
+    AG->>AG: Step 3: Redactar sumario por cada doctrina (pautas SAIJ)
+    AG->>AG: Step 4: Asignar voces del tesauro SAIJ
+    AG->>AG: Step 5: Identificar votación (mayoría/disidencia)
+    AG-->>P: Stream: Sumarios completos con voces y atribución
+    P-->>U: Sumarios listos para revisión y aprobación
 ```
 
 ## Components and Interfaces
@@ -185,6 +214,28 @@ interface BorradorResponse {
   borrador: string
   sentenciasCitadas: SentenciaReference[]
   disclaimer: string
+}
+
+interface SumarioGenerado {
+  numero: number
+  voces: string                     // Mayúsculas, separadas por " – "
+  texto: string                     // Redacción del sumario
+  atribucion: string                // "MINISTRO X – MINISTRO Y ADHIRIÓ"
+  esDisidencia: boolean
+}
+
+interface GenerarSumariosRequest {
+  sentenciaId: string
+  textoSentencia?: string           // Opcional si se pega texto directo
+}
+
+interface GenerarSumariosResponse {
+  fecha: string
+  expediente: string
+  caratula: string
+  magistrados: string
+  sumarios: SumarioGenerado[]
+  disclaimer: string                // "Sumarios generados por IA - requieren revisión"
 }
 ```
 
@@ -263,6 +314,20 @@ def generar_borrador(descripcion_caso: str, tipo_resolucion: str,
                      precedentes: list = None,
                      instrucciones: str = None) -> dict:
     """Genera borrador de resolución judicial basado en precedentes."""
+
+@tool
+def generar_sumarios(sentencia_id: str, texto_sentencia: str = None) -> dict:
+    """Genera sumarios jurisprudenciales de una sentencia siguiendo las pautas
+    del Sistema de Jurisprudencia Argentino (SAIJ).
+
+    Para cada doctrina identificada en la sentencia genera:
+    - Voces: descriptores temáticos del tesauro SAIJ (mayúsculas, de general a particular)
+    - Sumario: redacción autónoma, breve, fiel al tribunal, generalizable
+    - Atribución: qué magistrado opinó, quién adhirió, disidencias
+
+    Pautas aplicadas: Doctrina Única, Autonomía, Generalidad, Brevedad,
+    Claridad, Fidelidad. Un sumario por cada doctrina/tema tratado.
+    """
 ```
 
 **Responsabilidades**:
@@ -414,6 +479,10 @@ interface MetadataFile {
 ### Property 9: Completitud de auditoría
 *Para toda* consulta procesada, SHALL existir un registro con userId, timestamp y tipo de operación.
 **Validates: Requirements 9.3**
+
+### Property 10: Conformidad de sumarios con pautas SAIJ
+*Para todo* sumario generado por el tool generar_sumarios, SHALL contener: (a) una única doctrina por sumario, (b) voces en mayúsculas del tesauro SAIJ ordenadas de general a particular, (c) redacción autónoma comprensible sin el fallo, (d) atribución de magistrados (mayoría/disidencia).
+**Validates: Caso de uso #11**
 
 ## Error Handling
 
