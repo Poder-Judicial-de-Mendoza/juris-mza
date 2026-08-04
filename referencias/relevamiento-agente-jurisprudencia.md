@@ -266,7 +266,18 @@ Sumario 2:
 
 ---
 
-## 5. Matriz de priorización (completar post-relevamiento)
+## 5. Dataset de Evaluación
+
+Se dispone de un dataset de testeo con consultas reales y respuestas esperadas:
+
+- **Archivo**: `referencias/busqueda jurisprudencial.ods`
+- **Documentación**: `referencias/dataset-evaluacion-busqueda.md`
+- 15 consultas en lenguaje natural (fuero Penal, SCJM)
+- 28 sentencias ground truth con: Id Actuación, Fecha firma, CUIJ, Carátula
+- Sirve para: evaluar retrieval de la KB, validar respuestas del agente, medir Recall@K y MRR
+- Temas: acoso callejero, tentativa, dolo/imprudencia, perspectiva de género, juicio por jurados, extorsión, reincidencia, fundamentos orales, entre otros
+
+## 6. Matriz de priorización (completar post-relevamiento)
 
 Después de las entrevistas, clasificar cada caso de uso:
 
@@ -276,7 +287,7 @@ Después de las entrevistas, clasificar cada caso de uso:
 
 ---
 
-## 6. Próximos pasos sugeridos
+## 7. Próximos pasos sugeridos
 
 1. Entrevistar 5-8 usuarios de distintos fueros (laboral, civil, penal, familia)
 2. Clasificar los casos de uso por frecuencia e impacto

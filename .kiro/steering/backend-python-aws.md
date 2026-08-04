@@ -195,6 +195,25 @@ Data Lake S3 (PDFs completos, ~todas las sentencias)
 - No loguear contenido de respuestas del modelo (pueden contener datos de sentencias)
 - AgentCore provee tracing nativo integrado con CloudWatch
 
+## Testing y Evaluación
+
+### Dataset de evaluación de retrieval
+- **Archivo**: `referencias/busqueda jurisprudencial.ods`
+- **Documentación**: `referencias/dataset-evaluacion-busqueda.md`
+- Contiene **15 consultas** en lenguaje natural con **28 sentencias ground truth** (fuero Penal, SCJM)
+- Campos por registro: Búsqueda, Carátula esperada, Id Actuación, Fecha firma, CUIJ
+- Usar para evaluar: Recall@K del retrieval de la KB, calidad de respuestas del agente end-to-end
+- Algunas consultas tienen múltiples respuestas correctas (multi-hit)
+- Métricas objetivo: Recall@5 ≥ 80%, Recall@10 ≥ 90%, MRR ≥ 0.5
+
+### Ejecución de tests de retrieval
+```python
+# Patrón para evaluar cada consulta contra la KB
+resultado = buscar_sentencias(consulta="pregunta del dataset", limite=10)
+# Verificar que el id_actuacion o CUIJ esperado esté en los resultados
+assert id_esperado in [r['id_actuacion'] for r in resultado['sentencias']]
+```
+
 ## Convenciones
 - Variables, funciones y clases en **español**
 - Docstrings en español
